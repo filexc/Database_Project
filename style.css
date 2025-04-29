@@ -1,0 +1,33 @@
+.item {
+    /* float: left; */
+    margin: 2px;
+    background-color: lightcoral;
+    line-height: 100px;
+    text-align: center;
+    margin: 2px;
+    /* display: block; */
+    /* width: 100px; */
+}
+
+.container {
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+/* Style the buttons */
+.button {
+    border: none;
+    outline: none;
+    padding: 12px 16px;
+    background-color: #f1f1f1;
+    cursor: pointer;
+}
+
+.button:hover {
+    background-color: #ddd;
+}
+
+.button.active {
+    background-color: #666;
+    color: white;
+}
