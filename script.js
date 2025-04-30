@@ -12,12 +12,20 @@ fetch(sheetUrl)
         for (let i = 1; i < lines.length; i++) {
             const parts = lines[i].split('\t');
             const name = parts[0];
-            const tags = parts.slice(1);
+            const imageUrl = parts[1];
+            const tags = parts.slice(2);
 
             const div = document.createElement('div');
             div.className = 'item';
             div.dataset.tags = tags.join(',');
-            div.textContent = name;
+
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            div.appendChild(img);
+
+            const databaseName = document.createElement('div');
+            databaseName.textContent = name;
+            div.appendChild(databaseName);
 
             container.appendChild(div);
 
@@ -61,7 +69,7 @@ fetch(sheetUrl)
             const selectedFilter = filterDropdown.value;
             document.querySelectorAll('.item').forEach(item => {
                 if (selectedFilter === 'all' || item.dataset.tags.includes(selectedFilter)) {
-                    item.style.display = 'block';
+                    item.style.display = 'flex';
                 } else {
                     item.style.display = 'none';
                 }

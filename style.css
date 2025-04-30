@@ -1,17 +1,38 @@
 .item {
     /* float: left; */
-    margin: 2px;
+    display: flex;
     background-color: lightcoral;
     line-height: 100px;
-    text-align: center;
+    align-items: center;
+    /* text-align: center; */
     margin: 2px;
+    width: 100vw;
     /* display: block; */
     /* width: 100px; */
+}
+
+.item img {
+    height: 50px;
+    width: auto;
+    /* display: block; */
+    /* margin: 0 auto; */
+    object-fit: contain;
+    margin-left: 1%;
+    margin-right: 1%;
+    
+}
+
+.item div {
+    text-align: left;
+    flex: 1;
 }
 
 .container {
     margin-top: 20px;
     overflow: hidden;
+    align-items: flex-start;
+    display: flex;
+    flex-direction:column;
 }
 
 /* Style the buttons */
