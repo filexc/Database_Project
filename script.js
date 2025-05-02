@@ -22,7 +22,7 @@ fetch(sheetUrl)
 
             const img = document.createElement('img');
             img.src = imageUrl;
-            // div.appendChild(img);
+            // div.appendChild(img); --> eventually bring this back because the url for the detail page should be in a description rather than on the image no one will find it otherwise
 
             const detailLink = document.createElement('a');
             detailLink.href = `detail.html?name=${encodeURIComponent(name)}`;
