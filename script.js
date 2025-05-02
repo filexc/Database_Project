@@ -13,7 +13,8 @@ fetch(sheetUrl)
             const parts = lines[i].split('\t');
             const name = parts[0];
             const imageUrl = parts[1];
-            const tags = parts.slice(2);
+            const databaseUrl = parts[2];
+            const tags = parts.slice(3);
 
             const div = document.createElement('div');
             div.className = 'item';
@@ -21,11 +22,24 @@ fetch(sheetUrl)
 
             const img = document.createElement('img');
             img.src = imageUrl;
-            div.appendChild(img);
+            // div.appendChild(img);
 
+            const detailLink = document.createElement('a');
+            detailLink.href = `detail.html?name=${encodeURIComponent(name)}`;
+            detailLink.style.textDecoration = 'none';
+            detailLink.appendChild(img);
+            div.appendChild(detailLink);
+
+            const databaseLink = document.createElement('a');
+            databaseLink.href = databaseUrl;
+            // databaseLink.style.textDecoration = 'none';
+            
             const databaseName = document.createElement('div');
             databaseName.textContent = name;
-            div.appendChild(databaseName);
+            // div.appendChild(databaseName);
+
+            databaseLink.appendChild(databaseName);
+            div.appendChild(databaseLink);
 
             container.appendChild(div);
 
