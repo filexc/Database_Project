@@ -14,7 +14,8 @@ fetch(sheetUrl)
             const name = parts[0];
             const imageUrl = parts[1];
             const databaseUrl = parts[2];
-            const tags = parts.slice(3);
+            const databaseDescription = parts[3];
+            const tags = parts.slice(4);
 
             const div = document.createElement('div');
             div.className = 'item';
