@@ -14,7 +14,7 @@ fetch(sheetUrl)
             const name = parts[0];
             const imageUrl = parts[1];
             const databaseUrl = parts[2];
-            const databaseDescription = parts[3];
+            const databaseDescriptionText = parts[3];
             const tags = parts.slice(4);
 
             const div = document.createElement('div');
@@ -31,16 +31,27 @@ fetch(sheetUrl)
             detailLink.appendChild(img);
             div.appendChild(detailLink);
 
+            // const databaseName = document.createElement('div');
             const databaseLink = document.createElement('a');
             databaseLink.href = databaseUrl;
-            // databaseLink.style.textDecoration = 'none';
-            
-            const databaseName = document.createElement('div');
-            databaseName.textContent = name;
-            // div.appendChild(databaseName);
+            databaseLink.textContent = name;
+            // databaseLink.style.display = 'inline';
 
-            databaseLink.appendChild(databaseName);
-            div.appendChild(databaseLink);
+            const databaseDescription = document.createElement('div');
+            databaseDescription.textContent = databaseDescriptionText; // Assuming you have this in your data
+            // databaseDescription.style.display = 'inline';
+            // databaseDescription.style.marginLeft = '10px'; // <-- New line: Adds space between the name and description
+            databaseDescription.style.fontSize = '0.9em';
+            // databaseDescription.style.whiteSpace = 'normal';
+
+            const nameAndDescription = document.createElement('div');
+            nameAndDescription.style.display = 'inline';
+            nameAndDescription.style.whiteSpace = 'normal';
+
+            // databaseLink.appendChild(databaseName);
+            nameAndDescription.appendChild(databaseLink);
+            nameAndDescription.appendChild(databaseDescription);
+            div.appendChild(nameAndDescription)
 
             container.appendChild(div);
 
