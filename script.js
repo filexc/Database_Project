@@ -31,24 +31,21 @@ fetch(sheetUrl)
             detailLink.appendChild(img);
             div.appendChild(detailLink);
 
-            // const databaseName = document.createElement('div');
             const databaseLink = document.createElement('a');
             databaseLink.href = databaseUrl;
             databaseLink.textContent = name;
-            // databaseLink.style.display = 'inline';
+            databaseLink.className = 'database-name';
 
-            const databaseDescription = document.createElement('div');
-            databaseDescription.textContent = databaseDescriptionText; // Assuming you have this in your data
-            // databaseDescription.style.display = 'inline';
-            // databaseDescription.style.marginLeft = '10px'; // <-- New line: Adds space between the name and description
+            const databaseDescription = document.createElement('span');
+            databaseDescription.textContent = '– ' + databaseDescriptionText;
             databaseDescription.style.fontSize = '0.9em';
-            // databaseDescription.style.whiteSpace = 'normal';
+            databaseDescription.className = 'description';
 
             const nameAndDescription = document.createElement('div');
+            nameAndDescription.className = 'text-block';
             nameAndDescription.style.display = 'inline';
             nameAndDescription.style.whiteSpace = 'normal';
 
-            // databaseLink.appendChild(databaseName);
             nameAndDescription.appendChild(databaseLink);
             nameAndDescription.appendChild(databaseDescription);
             div.appendChild(nameAndDescription)
