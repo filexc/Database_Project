@@ -9,7 +9,8 @@
 .item {
     display: flex;
     align-items: center;
-    background-color: lightcoral;
+    /* background-color: lightcoral; */
+    border: solid rgb(197, 197, 197);
     padding: 10px;
     margin: 2px;
 }
