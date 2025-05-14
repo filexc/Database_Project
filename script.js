@@ -24,14 +24,18 @@ fetch(sheetUrl)
             div.dataset.tags = tags.join(',');
             div.dataset.provider = provider;
 
+            const logoFrame = document.createElement('div');
+            logoFrame.className = 'logo-frame';
+
             const img = document.createElement('img');
             img.src = imageUrl;
+            logoFrame.appendChild(img);
             // div.appendChild(img); --> eventually bring this back because the url for the detail page should be in a description rather than on the image no one will find it otherwise
 
             const detailLink = document.createElement('a');
             detailLink.href = `detail.html?name=${encodeURIComponent(name)}`;
             detailLink.style.textDecoration = 'none';
-            detailLink.appendChild(img);
+            detailLink.appendChild(logoFrame);
             div.appendChild(detailLink);
 
             const databaseLink = document.createElement('a');
