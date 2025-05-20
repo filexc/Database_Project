@@ -115,26 +115,113 @@ fetch(sheetUrl)
             providerFilterDropdown.appendChild(option);
         });
 
-        // Add filter functionality to the dropdown
-        tagFilterDropdown.addEventListener('change', applyFilters);
+        const alphabetContainer = document.querySelector('.alphabetFilter');
+        const alphabetButtons = {};
+        const availableLetters = new Set();
+
+        document.querySelectorAll('.item').forEach(item => {
+            const firstLetter = item.querySelector('.database-name').textContent.trim().charAt(0).toUpperCase();
+            if (firstLetter.match(/[A-Z]/)) {
+                availableLetters.add(firstLetter);
+            }
+        });
+
+        const allLetterButton = document.createElement('button');
+        allLetterButton.textContent = 'All';
+        allLetterButton.classList.add('active');
+        allLetterButton.addEventListener('click', () => {
+            selectedLetterFilter = null;
+            updateAlphabetButtons();
+            applyFilters();
+        });
+        alphabetContainer.appendChild(allLetterButton);
+
+        let selectedLetterFilter = null;
+
+        for (let i = 65; i <= 90; i++) {
+            const letter = String.fromCharCode(i);
+            const button = document.createElement('button');
+            button.textContent = letter;
+
+            if (!availableLetters.has(letter)) {
+                button.disabled = true;
+            }
+
+            button.addEventListener('click', () => {
+                selectedLetterFilter = letter;
+                updateAlphabetButtons();
+                applyFilters();
+            });
+
+            alphabetButtons[letter] = button;
+            alphabetContainer.appendChild(button);
+        }
 
         // Add filter functionality to the dropdown
-        providerFilterDropdown.addEventListener('change', applyFilters);
+        tagFilterDropdown.addEventListener('change', () => {
+            selectedLetterFilter = null;
+            updateAlphabetButtons();
+            applyFilters();
+        });
 
-        function applyFilters(){
+        // Add filter functionality to the dropdown
+        providerFilterDropdown.addEventListener('change', () => {
+            selectedLetterFilter = null;
+            updateAlphabetButtons();
+            applyFilters();
+        });
+
+        function applyFilters() {
             const selectedTagFilter = tagFilterDropdown.value;
             const selectedProviderFilter = providerFilterDropdown.value;
-    
+        
+            const filteringByTagOrProvider = 
+                selectedTagFilter !== 'all' || selectedProviderFilter !== 'all';
+        
+            const filteringByLetter = !!selectedLetterFilter;
+        
+            const visibleFirstLetters = new Set();
+        
             document.querySelectorAll('.item').forEach(item => {
-                matchesTag = selectedTagFilter == 'all' || item.dataset.tags.includes(selectedTagFilter);
-                matchesProvider = selectedProviderFilter === 'all' || item.dataset.provider == selectedProviderFilter;
-    
-                if (matchesTag && matchesProvider){
+                const nameText = item.querySelector('.database-name').textContent.trim();
+                const firstLetter = nameText.charAt(0).toUpperCase();
+        
+                const matchesTag = selectedTagFilter == 'all' || item.dataset.tags.includes(selectedTagFilter);
+                const matchesProvider = selectedProviderFilter === 'all' || item.dataset.provider == selectedProviderFilter;
+                const matchesLetter = !selectedLetterFilter || firstLetter === selectedLetterFilter;
+        
+                if (matchesTag && matchesProvider && matchesLetter) {
                     item.style.display = 'flex';
+                    visibleFirstLetters.add(firstLetter);
                 } else {
                     item.style.display = 'none';
                 }
             });
+        
+            if (!filteringByLetter) {
+                for (let i = 65; i <= 90; i++) {
+                    const letter = String.fromCharCode(i);
+                    const btn = alphabetButtons[letter];
+                    if (!btn) continue;
+        
+                    if (filteringByTagOrProvider) {
+                        btn.disabled = !visibleFirstLetters.has(letter);
+                    } else {
+                        btn.disabled = !availableLetters.has(letter);
+                    }
+                }
+            }
+        }
+        
+        
+
+        function updateAlphabetButtons() {
+            document.querySelectorAll('.alphabetFilter button').forEach(btn => btn.classList.remove('active'));
+            if (!selectedLetterFilter) {
+                allLetterButton.classList.add('active');
+            } else {
+                alphabetButtons[selectedLetterFilter]?.classList.add('active');
+            }
         }
 
     })

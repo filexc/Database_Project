@@ -67,6 +67,51 @@
     text-decoration: underline;
 }
 
+.alphabetFilter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 1rem;
+}
+
+.alphabetFilter button {
+    background: none;
+    border: none;
+    color: blue;
+    cursor: pointer;
+    padding: 0 6px;
+    font-size: 1em;
+    text-decoration: none;
+    font-family: inherit;
+    transition: color 0.3s ease;
+}
+
+.alphabetFilter button:disabled {
+    color: #999;
+    cursor: not-allowed;
+    text-decoration: none;
+}
+
+.alphabetFilter button:not(:disabled):hover {
+    color: darkblue;
+    text-decoration: underline;
+}
+
+.alphabetFilter button:disabled:hover {
+    color: lightgray;
+}
+
+.alphabetFilter button.active {
+    color: blue;
+    background: none;
+    border: 1px dotted blue;
+    padding: 2px 5px;
+    border-radius: 3px;
+    text-decoration: none;
+    text-align: center;
+    display: inline-block;
+}
+
 /* Style the buttons */
 .button {
     border: none;
