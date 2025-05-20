@@ -62,7 +62,7 @@
     text-decoration: none;
 }
 
-.container a:hover, container a:focus{
+.container a:hover, .container a:focus{
     color: darkblue;
     text-decoration: underline;
 }
@@ -110,6 +110,17 @@
     text-decoration: none;
     text-align: center;
     display: inline-block;
+}
+
+.letter-section {
+    margin-bottom: 2rem;
+}
+
+.letter-heading {
+    font-size: 1.5rem;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 1rem;
+    font-style: inherit;
 }
 
 /* Style the buttons */

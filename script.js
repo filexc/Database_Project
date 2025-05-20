@@ -10,6 +10,8 @@ fetch(sheetUrl)
         const providerFilters = new Set();
 
         // Create items and collect tags
+        const sectionMap = {};
+
         for (let i = 1; i < lines.length; i++) {
             const parts = lines[i].split('\t');
             const name = parts[0];
@@ -18,6 +20,11 @@ fetch(sheetUrl)
             const databaseUrl = parts[3];
             const databaseDescriptionText = parts[4];
             const tags = parts.slice(5);
+
+            let firstLetter = name.trim().charAt(0).toUpperCase();
+            if(!firstLetter.match(/[A-Z]/)) {
+                firstLetter = '#';
+            };
 
             const div = document.createElement('div');
             div.className = 'item';
@@ -42,7 +49,7 @@ fetch(sheetUrl)
             databaseLink.href = databaseUrl;
             p = provider != '' ? ' (' + provider + ')' : '';
             databaseLink.textContent = name + p;
-            databaseLink.setAttribute('target', '\_blank');
+            databaseLink.setAttribute('target', '_blank');
             databaseLink.className = 'database-name';
 
             if (provider != '') {
@@ -61,9 +68,12 @@ fetch(sheetUrl)
 
             nameAndDescription.appendChild(databaseLink);
             nameAndDescription.appendChild(databaseDescription);
-            div.appendChild(nameAndDescription)
+            div.appendChild(nameAndDescription);
 
-            container.appendChild(div);
+            if (!sectionMap[firstLetter]){
+                sectionMap[firstLetter] = [];
+            }
+            sectionMap[firstLetter].push(div);
 
             // Add tags to the filters Set (avoiding duplicates)
             tags.forEach(tag => {
@@ -79,6 +89,23 @@ fetch(sheetUrl)
             sortedTagFilters = Array.from(tagFilters).sort();
             sortedProviderFilters = Array.from(providerFilters).sort();
         }
+
+        Object.keys(sectionMap).sort().forEach(letter => {
+            const section = document.createElement('div');
+            section.className = 'letter-section';
+            section.dataset.letter = letter;
+
+            const heading = document.createElement('h3');
+            heading.textContent = letter;
+            heading.className = 'letter-heading';
+            section.appendChild(heading);
+
+            sectionMap[letter].forEach(item => {
+                section.appendChild(item);
+            });
+
+            container.appendChild(section);
+        });
 
         // Dynamically create filter buttons based on unique tags
         const tagFiltersContainer = document.querySelector('.tagFilters');
@@ -120,10 +147,11 @@ fetch(sheetUrl)
         const availableLetters = new Set();
 
         document.querySelectorAll('.item').forEach(item => {
-            const firstLetter = item.querySelector('.database-name').textContent.trim().charAt(0).toUpperCase();
-            if (firstLetter.match(/[A-Z]/)) {
-                availableLetters.add(firstLetter);
+            let firstLetter = item.querySelector('.database-name').textContent.trim().charAt(0).toUpperCase();
+            if (!firstLetter.match(/[A-Z]/)) {
+                firstLetter = '#';
             }
+            availableLetters.add(firstLetter);
         });
 
         const allLetterButton = document.createElement('button');
@@ -138,24 +166,27 @@ fetch(sheetUrl)
 
         let selectedLetterFilter = null;
 
-        for (let i = 65; i <= 90; i++) {
-            const letter = String.fromCharCode(i);
+        const alphabet = ['#'].concat(
+            Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
+        );
+        
+        alphabet.forEach(letter => {
             const button = document.createElement('button');
             button.textContent = letter;
-
+        
             if (!availableLetters.has(letter)) {
                 button.disabled = true;
             }
-
+        
             button.addEventListener('click', () => {
                 selectedLetterFilter = letter;
                 updateAlphabetButtons();
                 applyFilters();
             });
-
+        
             alphabetButtons[letter] = button;
             alphabetContainer.appendChild(button);
-        }
+        });
 
         // Add filter functionality to the dropdown
         tagFilterDropdown.addEventListener('change', () => {
@@ -182,22 +213,41 @@ fetch(sheetUrl)
         
             const visibleFirstLetters = new Set();
         
+            // First hide or show individual items
             document.querySelectorAll('.item').forEach(item => {
                 const nameText = item.querySelector('.database-name').textContent.trim();
-                const firstLetter = nameText.charAt(0).toUpperCase();
-        
-                const matchesTag = selectedTagFilter == 'all' || item.dataset.tags.includes(selectedTagFilter);
+                let firstLetter = nameText.charAt(0).toUpperCase();
+                if (!firstLetter.match(/[A-Z]/)) {
+                    firstLetter = '#';
+                }            
+                const tagsArray = item.dataset.tags.split(',');
+                const matchesTag = selectedTagFilter === 'all' || tagsArray.includes(selectedTagFilter);
                 const matchesProvider = selectedProviderFilter === 'all' || item.dataset.provider == selectedProviderFilter;
                 const matchesLetter = !selectedLetterFilter || firstLetter === selectedLetterFilter;
         
-                if (matchesTag && matchesProvider && matchesLetter) {
-                    item.style.display = 'flex';
+                const visible = matchesTag && matchesProvider && matchesLetter;
+        
+                item.style.display = visible ? 'flex' : 'none';
+                if (visible) {
                     visibleFirstLetters.add(firstLetter);
-                } else {
-                    item.style.display = 'none';
                 }
             });
         
+            // Then show or hide entire sections
+            document.querySelectorAll('.letter-section').forEach(section => {
+                const letter = section.dataset.letter;
+                let sectionHasVisibleItems = false;
+        
+                section.querySelectorAll('.item').forEach(item => {
+                    if (item.style.display !== 'none') {
+                        sectionHasVisibleItems = true;
+                    }
+                });
+        
+                section.style.display = sectionHasVisibleItems ? 'block' : 'none';
+            });
+        
+            // Disable alphabet buttons that no longer have visible items
             if (!filteringByLetter) {
                 for (let i = 65; i <= 90; i++) {
                     const letter = String.fromCharCode(i);
@@ -210,9 +260,17 @@ fetch(sheetUrl)
                         btn.disabled = !availableLetters.has(letter);
                     }
                 }
-            }
-        }
         
+                const numberBtn = alphabetButtons['#'];
+                if (numberBtn) {
+                    if (filteringByTagOrProvider) {
+                        numberBtn.disabled = !visibleFirstLetters.has('#');
+                    } else {
+                        numberBtn.disabled = !availableLetters.has('#');
+                    }
+                }
+            }
+        }        
         
 
         function updateAlphabetButtons() {
