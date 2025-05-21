@@ -202,7 +202,7 @@ function createFilterControls(tags, providers){
     
             const numberBtn = alphabetButtons['#'];
             if (numberBtn) {
-                numberBtn.disabled = filteringByTagOrProvider ? !visibleLetters.has(letter) : !availableLetters.has(letter);
+                numberBtn.disabled = filteringByTagOrProvider ? !visibleLetters.has('#') : !availableLetters.has('#');
             }
         }
     }
