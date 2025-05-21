@@ -123,7 +123,6 @@
     font-style: inherit;
 }
 
-/* Style the buttons */
 .button {
     border: none;
     outline: none;
@@ -139,4 +138,9 @@
 .button.active {
     background-color: #666;
     color: white;
+}
+
+select {
+    font-family: inherit;
+    font-size: 0.95em;
 }

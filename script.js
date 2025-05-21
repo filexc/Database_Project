@@ -14,6 +14,12 @@ function processSheetData(csvData) {
     const providerFilters = new Set();
     const sectionMap = {};
 
+    const emptyMessage = document.createElement('div');
+    emptyMessage.className = 'empty-message';
+    emptyMessage.textContent = 'No results match your filters.';
+    emptyMessage.style.display = 'none';
+    container.appendChild(emptyMessage);
+
     for (let i = 1; i < lines.length; i++) {
         const entry = parseLine(lines[i]);
         addToFilters(entry, tagFilters, providerFilters);
@@ -63,13 +69,7 @@ function createItem(entry) {
     const img = document.createElement('img');
     img.src = entry.imageUrl;
     logoFrame.appendChild(img);
-    // div.appendChild(img); --> eventually bring this back because the url for the detail page should be in a description rather than on the image no one will find it otherwise
-
-    const detailLink = document.createElement('a');
-    detailLink.href = `detail.html?name=${encodeURIComponent(entry.name)}`;
-    detailLink.style.textDecoration = 'none';
-    detailLink.appendChild(logoFrame);
-    div.appendChild(detailLink);
+    div.appendChild(logoFrame);
 
     const nameAndDescription = document.createElement('div');
     nameAndDescription.className = 'text-block';
@@ -81,7 +81,6 @@ function createItem(entry) {
     p = entry.provider != '' ? ' (' + entry.provider + ')' : '';
     databaseLink.textContent = entry.name + p;
     databaseLink.target = '_blank';
-    // databaseLink.setAttribute('target', '_blank');
     databaseLink.className = 'database-name';
 
     const databaseDescription = document.createElement('span');
@@ -125,6 +124,8 @@ function createFilterControls(tags, providers){
 
     const tagDropdown = createDropdown('All Tags', tags, tagFiltersContainer);
     const providerDropdown = createDropdown('All Providers', providers, providerFiltersContainer);
+
+    const emptyMessage = document.querySelector('.empty-message');
 
     const alphabetContainer = document.querySelector('.alphabetFilter');
     const alphabetButtons = {};
@@ -205,6 +206,11 @@ function createFilterControls(tags, providers){
                 numberBtn.disabled = filteringByTagOrProvider ? !visibleLetters.has('#') : !availableLetters.has('#');
             }
         }
+
+        const allItems = document.querySelectorAll('.item');
+        const visibleItems = Array.from(allItems).filter(item => item.style.display !== 'none');
+
+        emptyMessage.style.display = visibleItems.length === 0 ? 'block' : 'none';
     }
 
     function updateAlphabetButtons() {
