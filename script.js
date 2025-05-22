@@ -7,7 +7,6 @@ fetch(sheetUrl)
 
 function processSheetData(csvData) {
     const lines = csvData.trim().split('\n');
-    const headers = lines[0].split('\t');
 
     const container = document.querySelector('.container');
     const tagFilters = new Set();  // To hold unique tags
@@ -132,6 +131,12 @@ function createFilterControls(tags, providers){
     const availableLetters = new Set();
     let selectedLetterFilter = null;
 
+    const clearButton = document.createElement('button');
+    clearButton.textContent = 'Clear Filters';
+    clearButton.className = 'clear-button';
+    clearButton.disabled = true;
+    document.querySelector('.filterBar').appendChild(clearButton);
+
     document.querySelectorAll('.item').forEach(item => {
         let firstLetter = item.querySelector('.database-name').textContent.trim().charAt(0).toUpperCase();
         if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
@@ -210,7 +215,14 @@ function createFilterControls(tags, providers){
         const allItems = document.querySelectorAll('.item');
         const visibleItems = Array.from(allItems).filter(item => item.style.display !== 'none');
 
-        emptyMessage.style.display = visibleItems.length === 0 ? 'block' : 'none';
+        const hasTagFilter = tagDropdown.value !== 'all';
+        const hasProviderFilter = providerDropdown.value !== 'all';
+        const hasLetterFilter = !!selectedLetterFilter;
+        const anyFilterActive = hasTagFilter || hasProviderFilter || hasLetterFilter;
+        
+        clearButton.disabled = !anyFilterActive;
+        
+        emptyMessage.style.display = visibleItems.length === 0 ? 'flex' : 'none';
     }
 
     function updateAlphabetButtons() {
@@ -233,6 +245,16 @@ function createFilterControls(tags, providers){
         updateAlphabetButtons();
         applyFilters();
     });
+
+    clearButton.addEventListener('click', () => clearFilters());
+
+    function clearFilters() {
+        tagDropdown.value = 'all';
+        providerDropdown.value = 'all';
+        selectedLetterFilter = null;
+        updateAlphabetButtons();
+        applyFilters();
+    }
 }
 
 function createDropdown(defaultText, options, container) {

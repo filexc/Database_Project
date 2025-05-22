@@ -144,3 +144,24 @@ select {
     font-family: inherit;
     font-size: 0.95em;
 }
+
+.clear-button {
+    background-color: #ea7a72;
+    color: white;
+    border: none;
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-family: inherit;
+    font-size: 0.95em;
+}
+
+.clear-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.clear-button:hover:not(:disabled) {
+    background-color: #d32f2f;
+}
