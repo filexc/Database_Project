@@ -151,6 +151,9 @@ function createFilterControls(tags, providers){
         updateAlphabetButtons();
         applyFilters();
     });
+
+    applyFilters();
+
     alphabetContainer.appendChild(allButton);
 
     const alphabet = ['#'].concat(Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)));
@@ -223,6 +226,9 @@ function createFilterControls(tags, providers){
         clearButton.disabled = !anyFilterActive;
         
         emptyMessage.style.display = visibleItems.length === 0 ? 'flex' : 'none';
+
+        const countDisplay = document.getElementById('database-count');
+        countDisplay.textContent = `${visibleItems.length} database${visibleItems.length === 1 ? '' : 's'} found`;
     }
 
     function updateAlphabetButtons() {
