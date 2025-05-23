@@ -53,10 +53,12 @@ function parseLine(line) {
 function addToFilters(entry, tagFilters, providerFilters) {
     if (entry.provider) providerFilters.add(entry.provider);
     entry.tags.forEach(tag => {
-        const cleanTag = tag.trim().replace(/\s+/g, ' ').replace(/\u00A0/g, ' ');
+        // Clean tag: trim, remove leading 'x' or 'X', collapse spaces, ignore blanks
+        const cleanTag = tag.trim().replace(/^\s*[xX]/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ');
         if (cleanTag) tagFilters.add(cleanTag);
     });
 }
+
 function createItem(entry) {
     const div = document.createElement('div');
     div.className = 'item';
@@ -72,23 +74,50 @@ function createItem(entry) {
 
     const nameAndDescription = document.createElement('div');
     nameAndDescription.className = 'text-block';
-    nameAndDescription.style.display = 'inline';
     nameAndDescription.style.whiteSpace = 'normal';
 
     const databaseLink = document.createElement('a');
     databaseLink.href = entry.databaseUrl;
-    p = entry.provider != '' ? ' (' + entry.provider + ')' : '';
+    let p = entry.provider != '' ? ' (' + entry.provider + ')' : '';
     databaseLink.textContent = entry.name + p;
     databaseLink.target = '_blank';
     databaseLink.className = 'database-name';
 
     const databaseDescription = document.createElement('span');
-    databaseDescription.textContent = '- ' + entry.databaseDescriptionText;
+    databaseDescription.textContent = ' - ' + entry.databaseDescriptionText;
     databaseDescription.style.fontSize = '0.9em';
     databaseDescription.className = 'description';
 
     nameAndDescription.appendChild(databaseLink);
     nameAndDescription.appendChild(databaseDescription);
+
+    // Create a container for tags on the line below
+    if (entry.tags.some(tag => tag.trim() !== '')) {
+        const tagsContainer = document.createElement('div');
+        tagsContainer.className = 'tags-container';
+        tagsContainer.style.marginTop = '4px';
+
+        entry.tags
+            .map(tag => tag.trim())
+            .filter(tag => tag !== '')
+            .forEach(tag => {
+                const cleanTag = tag.startsWith('x') ? tag.slice(1) : tag;
+
+                const tagSpan = document.createElement('span');
+                tagSpan.textContent = cleanTag;
+                tagSpan.className = 'tag-label';
+                tagSpan.style.backgroundColor = '#ddd';
+                tagSpan.style.borderRadius = '4px';
+                tagSpan.style.padding = '2px 6px';
+                tagSpan.style.marginRight = '6px';
+                tagSpan.style.fontSize = '0.9em';
+                tagSpan.style.color = '#666';
+                tagsContainer.appendChild(tagSpan);
+            });
+
+        nameAndDescription.appendChild(tagsContainer);
+    }
+
     div.appendChild(nameAndDescription);
 
     return div;
@@ -183,8 +212,11 @@ function createFilterControls(tags, providers){
             let firstLetter = nameText.charAt(0).toUpperCase();
             if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
             
-            const tagsArray = item.dataset.tags.split(',');
-            const matchesTag = selectedTag === 'all' || tagsArray.includes(selectedTag);
+            // Clean tags on item dataset before matching
+            const tagsArray = item.dataset.tags.split(',').map(t => t.trim());
+            const cleanedTagsArray = tagsArray.map(t => t.replace(/^\s*[xX]/, ''));
+
+            const matchesTag = selectedTag === 'all' || cleanedTagsArray.includes(selectedTag);
             const matchesProvider = selectedProvider === 'all' || item.dataset.provider == selectedProvider;
             const matchesLetter = !selectedLetterFilter || firstLetter === selectedLetterFilter;
     
@@ -228,7 +260,9 @@ function createFilterControls(tags, providers){
         emptyMessage.style.display = visibleItems.length === 0 ? 'flex' : 'none';
 
         const countDisplay = document.getElementById('database-count');
-        countDisplay.textContent = `${visibleItems.length} database${visibleItems.length === 1 ? '' : 's'} found`;
+        if (countDisplay) {
+            countDisplay.textContent = `${visibleItems.length} database${visibleItems.length === 1 ? '' : 's'} found`;
+        }
     }
 
     function updateAlphabetButtons() {

@@ -171,3 +171,18 @@ select {
     font-weight: bold;
     font-size: 1.1em;
 }
+
+.tags-container {
+    margin-top: 4px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.tag-label {
+    background-color: #eee;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-right: 6px;
+    display: inline-block;
+    font-family: inherit;
+}
