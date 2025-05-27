@@ -9,7 +9,7 @@ function processSheetData(csvData) {
     const lines = csvData.trim().split('\n');
 
     const container = document.querySelector('.container');
-    const tagFilters = new Set();  // To hold unique tags
+    const tagFilters = new Set();
     const providerFilters = new Set();
     const sectionMap = {};
 
@@ -31,7 +31,7 @@ function processSheetData(csvData) {
     }
 
     createLetterSections(sectionMap, container);
-    const {sortedTagFilters, sortedProviderFilters} = sortFilters(tagFilters, providerFilters);
+    const { sortedTagFilters, sortedProviderFilters } = sortFilters(tagFilters, providerFilters);
     createFilterControls(sortedTagFilters, sortedProviderFilters);
 
     applyFilters();
@@ -110,18 +110,17 @@ function createItem(entry) {
             .forEach(tag => {
                 const cleanTag = tag.replace(/^[xX]/, '');
 
-                const tagSpan = document.createElement('span');
-                tagSpan.textContent = cleanTag;
-                tagSpan.className = 'tag-label';
-                tagSpan.style.backgroundColor = '#ddd';
-                tagSpan.style.borderRadius = '4px';
-                tagSpan.style.padding = '2px 6px';
-                tagSpan.style.marginRight = '6px';
-                tagSpan.style.fontSize = '0.9em';
-                tagSpan.style.color = '#666';
+                const tagButton = document.createElement('span');
+                tagButton.textContent = cleanTag;
+                tagButton.className = 'tag-label';
+                tagButton.style.backgroundColor = '#ddd';
+                tagButton.style.borderRadius = '4px';
+                tagButton.style.padding = '2px 6px';
+                tagButton.style.marginRight = '6px';
+                tagButton.style.fontSize = '0.9em';
+                tagButton.style.color = '#666';
 
-                // **HERE: When clicking a tag, update dropdown filter and apply filters**
-                tagSpan.addEventListener('click', () => {
+                tagButton.addEventListener('click', () => {
                     const tagDropdown = document.querySelector('.tagFilters select');
                     if (tagDropdown) {
                         tagDropdown.value = cleanTag;
@@ -131,7 +130,7 @@ function createItem(entry) {
                     }
                 });
 
-                tagsContainer.appendChild(tagSpan);
+                tagsContainer.appendChild(tagButton);
             });
 
         nameAndDescription.appendChild(tagsContainer);
@@ -142,7 +141,7 @@ function createItem(entry) {
     return div;
 }
 
-function createLetterSections(sectionMap, container){
+function createLetterSections(sectionMap, container) {
     Object.keys(sectionMap).sort().forEach(letter => {
         const section = document.createElement('div');
         section.className = 'letter-section';
@@ -165,7 +164,7 @@ function sortFilters(tagFilters, providerFilters) {
     };
 }
 
-function createFilterControls(tags, providers){
+function createFilterControls(tags, providers) {
     const tagFiltersContainer = document.querySelector('.tagFilters');
     const providerFiltersContainer = document.querySelector('.providerFilters');
 
@@ -215,7 +214,7 @@ function createFilterControls(tags, providers){
         alphabetContainer.appendChild(button);
     });
 
-    applyFilters = function(){
+    applyFilters = function () {
         const selectedTag = tagDropdown.value;
         const selectedProvider = providerDropdown.value;
 
@@ -280,7 +279,7 @@ function createFilterControls(tags, providers){
         }
     };
 
-    updateAlphabetButtons = function(){
+    updateAlphabetButtons = function () {
         document.querySelectorAll('.alphabetFilter button').forEach(btn => btn.classList.remove('active'));
         if (!selectedLetterFilter) {
             allButton.classList.add('active');
