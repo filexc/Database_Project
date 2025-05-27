@@ -1,8 +1,5 @@
 const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSKC0N3BXrvxSnYhKoLtg1AG7QKevRWw6wtglOxOqd5c2yA-4sYm1fa51Q5thYUbNmvuUhgwogaZacG/pub?output=tsv';
 
-let selectedLetterFilter = null;
-let tagDropdown, providerDropdown, clearButton;
-
 fetch(sheetUrl)
     .then(response => response.text())
     .then(csvData => processSheetData(csvData))
@@ -12,7 +9,7 @@ function processSheetData(csvData) {
     const lines = csvData.trim().split('\n');
 
     const container = document.querySelector('.container');
-    const tagFilters = new Set();
+    const tagFilters = new Set();  // To hold unique tags
     const providerFilters = new Set();
     const sectionMap = {};
 
@@ -56,7 +53,8 @@ function parseLine(line) {
 function addToFilters(entry, tagFilters, providerFilters) {
     if (entry.provider) providerFilters.add(entry.provider);
     entry.tags.forEach(tag => {
-        const cleanTag = tag.trim().replace(/^[xX]\s*/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ');
+        // Clean tag: trim, remove leading 'x' or 'X', collapse spaces, ignore blanks
+        const cleanTag = tag.trim().replace(/^\s*[xX]/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ');
         if (cleanTag) tagFilters.add(cleanTag);
     });
 }
@@ -93,32 +91,29 @@ function createItem(entry) {
     nameAndDescription.appendChild(databaseLink);
     nameAndDescription.appendChild(databaseDescription);
 
+    // Create a container for tags on the line below
     if (entry.tags.some(tag => tag.trim() !== '')) {
         const tagsContainer = document.createElement('div');
         tagsContainer.className = 'tags-container';
         tagsContainer.style.marginTop = '4px';
 
-        entry.tags.map(tag => tag.trim()).filter(tag => tag !== '').forEach(tag => {
-            const cleanTag = tag.replace(/^x/i, '').trim();
-            const tagButton = document.createElement('button');
-            tagButton.textContent = cleanTag;
-            tagButton.className = 'tag-label';
-            tagButton.style.backgroundColor = '#ddd';
-            tagButton.style.borderRadius = '4px';
-            tagButton.style.padding = '4px 6px';
-            tagButton.style.marginRight = '6px';
-            tagButton.style.fontSize = '0.9em';
-            tagButton.style.color = '#666';
-            tagButton.style.border = 'none';
-            tagButton.addEventListener('click', () => {
-                if (tagDropdown) tagDropdown.value = cleanTag;
-                if (providerDropdown) providerDropdown.value = 'all';
-                selectedLetterFilter = null;
-                updateAlphabetButtons();
-                applyFilters();
+        entry.tags
+            .map(tag => tag.trim())
+            .filter(tag => tag !== '')
+            .forEach(tag => {
+                const cleanTag = tag.startsWith('x') ? tag.slice(1) : tag;
+
+                const tagSpan = document.createElement('span');
+                tagSpan.textContent = cleanTag;
+                tagSpan.className = 'tag-label';
+                tagSpan.style.backgroundColor = '#ddd';
+                tagSpan.style.borderRadius = '4px';
+                tagSpan.style.padding = '2px 6px';
+                tagSpan.style.marginRight = '6px';
+                tagSpan.style.fontSize = '0.9em';
+                tagSpan.style.color = '#666';
+                tagsContainer.appendChild(tagSpan);
             });
-            tagsContainer.appendChild(tagButton);
-        });
 
         nameAndDescription.appendChild(tagsContainer);
     }
@@ -128,18 +123,18 @@ function createItem(entry) {
     return div;
 }
 
-function createLetterSections(sectionMap, container) {
+function createLetterSections(sectionMap, container){
     Object.keys(sectionMap).sort().forEach(letter => {
         const section = document.createElement('div');
         section.className = 'letter-section';
         section.dataset.letter = letter;
-
+    
         const heading = document.createElement('h3');
         heading.className = 'letter-heading';
         heading.textContent = letter;
 
         section.appendChild(heading);
-        sectionMap[letter].forEach(item => section.appendChild(item));
+        sectionMap[letter].forEach(item => section.appendChild(item));    
         container.appendChild(section);
     });
 }
@@ -151,18 +146,21 @@ function sortFilters(tagFilters, providerFilters) {
     };
 }
 
-function createFilterControls(tags, providers) {
+function createFilterControls(tags, providers){
     const tagFiltersContainer = document.querySelector('.tagFilters');
     const providerFiltersContainer = document.querySelector('.providerFilters');
 
-    tagDropdown = createDropdown('All Tags', tags, tagFiltersContainer);
-    providerDropdown = createDropdown('All Providers', providers, providerFiltersContainer);
+    const tagDropdown = createDropdown('All Tags', tags, tagFiltersContainer);
+    const providerDropdown = createDropdown('All Providers', providers, providerFiltersContainer);
+
+    const emptyMessage = document.querySelector('.empty-message');
 
     const alphabetContainer = document.querySelector('.alphabetFilter');
     const alphabetButtons = {};
     const availableLetters = new Set();
+    let selectedLetterFilter = null;
 
-    clearButton = document.createElement('button');
+    const clearButton = document.createElement('button');
     clearButton.textContent = 'Clear Filters';
     clearButton.className = 'clear-button';
     clearButton.disabled = true;
@@ -183,6 +181,8 @@ function createFilterControls(tags, providers) {
         applyFilters();
     });
 
+    applyFilters();
+
     alphabetContainer.appendChild(allButton);
 
     const alphabet = ['#'].concat(Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)));
@@ -198,6 +198,81 @@ function createFilterControls(tags, providers) {
         alphabetButtons[letter] = button;
         alphabetContainer.appendChild(button);
     });
+
+    function applyFilters(){
+        const selectedTag = tagDropdown.value;
+        const selectedProvider = providerDropdown.value;
+
+        const filteringByTagOrProvider = selectedTag !== 'all' || selectedProvider !== 'all';
+        const filteringByLetter = !!selectedLetterFilter;
+        const visibleLetters = new Set();
+
+        document.querySelectorAll('.item').forEach(item => {
+            const nameText = item.querySelector('.database-name').textContent.trim();
+            let firstLetter = nameText.charAt(0).toUpperCase();
+            if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
+            
+            // Clean tags on item dataset before matching
+            const tagsArray = item.dataset.tags.split(',').map(t => t.trim());
+            const cleanedTagsArray = tagsArray.map(t => t.replace(/^\s*[xX]/, ''));
+
+            const matchesTag = selectedTag === 'all' || cleanedTagsArray.includes(selectedTag);
+            const matchesProvider = selectedProvider === 'all' || item.dataset.provider == selectedProvider;
+            const matchesLetter = !selectedLetterFilter || firstLetter === selectedLetterFilter;
+    
+            const visible = matchesTag && matchesProvider && matchesLetter;
+    
+            item.style.display = visible ? 'flex' : 'none';
+            if (visible) visibleLetters.add(firstLetter);
+        });
+
+        document.querySelectorAll('.letter-section').forEach(section => {
+            const hasVisible = Array.from(section.querySelectorAll('.item')).some(
+                item => item.style.display !== 'none'
+            );
+            section.style.display = hasVisible ? 'block' : 'none';
+        });
+
+        if (!filteringByLetter) {
+            for (let i = 65; i <= 90; i++) {
+                const letter = String.fromCharCode(i);
+                const btn = alphabetButtons[letter];
+                if (!btn) continue;
+                btn.disabled = filteringByTagOrProvider ? !visibleLetters.has(letter) : !availableLetters.has(letter);
+            }
+    
+            const numberBtn = alphabetButtons['#'];
+            if (numberBtn) {
+                numberBtn.disabled = filteringByTagOrProvider ? !visibleLetters.has('#') : !availableLetters.has('#');
+            }
+        }
+
+        const allItems = document.querySelectorAll('.item');
+        const visibleItems = Array.from(allItems).filter(item => item.style.display !== 'none');
+
+        const hasTagFilter = tagDropdown.value !== 'all';
+        const hasProviderFilter = providerDropdown.value !== 'all';
+        const hasLetterFilter = !!selectedLetterFilter;
+        const anyFilterActive = hasTagFilter || hasProviderFilter || hasLetterFilter;
+        
+        clearButton.disabled = !anyFilterActive;
+        
+        emptyMessage.style.display = visibleItems.length === 0 ? 'flex' : 'none';
+
+        const countDisplay = document.getElementById('database-count');
+        if (countDisplay) {
+            countDisplay.textContent = `${visibleItems.length} database${visibleItems.length === 1 ? '' : 's'} found`;
+        }
+    }
+
+    function updateAlphabetButtons() {
+        document.querySelectorAll('.alphabetFilter button').forEach(btn => btn.classList.remove('active'));
+        if (!selectedLetterFilter) {
+            allButton.classList.add('active');
+        } else {
+            alphabetButtons[selectedLetterFilter]?.classList.add('active');
+        }
+    }
 
     tagDropdown.addEventListener('change', () => {
         selectedLetterFilter = null;
@@ -219,71 +294,6 @@ function createFilterControls(tags, providers) {
         selectedLetterFilter = null;
         updateAlphabetButtons();
         applyFilters();
-    }
-}
-
-function updateAlphabetButtons() {
-    document.querySelectorAll('.alphabetFilter button').forEach(btn => btn.classList.remove('active'));
-    const allButton = document.querySelector('.alphabetFilter button');
-    if (!selectedLetterFilter) {
-        allButton.classList.add('active');
-    } else {
-        const target = Array.from(document.querySelectorAll('.alphabetFilter button')).find(btn => btn.textContent === selectedLetterFilter);
-        if (target) target.classList.add('active');
-    }
-}
-
-function applyFilters() {
-    const selectedTag = tagDropdown.value;
-    const selectedProvider = providerDropdown.value;
-    const filteringByTagOrProvider = selectedTag !== 'all' || selectedProvider !== 'all';
-    const filteringByLetter = !!selectedLetterFilter;
-    const visibleLetters = new Set();
-
-    document.querySelectorAll('.item').forEach(item => {
-        const nameText = item.querySelector('.database-name').textContent.trim();
-        let firstLetter = nameText.charAt(0).toUpperCase();
-        if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
-
-        const tagsArray = item.dataset.tags.split(',').map(t => t.trim());
-        const cleanedTagsArray = tagsArray.map(t => t.replace(/^[xX]\s*/, '').trim());
-
-        const matchesTag = selectedTag === 'all' || cleanedTagsArray.includes(selectedTag);
-        const matchesProvider = selectedProvider === 'all' || item.dataset.provider === selectedProvider;
-        const matchesLetter = !selectedLetterFilter || firstLetter === selectedLetterFilter;
-
-        const visible = matchesTag && matchesProvider && matchesLetter;
-        item.style.display = visible ? 'flex' : 'none';
-        if (visible) visibleLetters.add(firstLetter);
-    });
-
-    document.querySelectorAll('.letter-section').forEach(section => {
-        const hasVisible = Array.from(section.querySelectorAll('.item')).some(
-            item => item.style.display !== 'none'
-        );
-        section.style.display = hasVisible ? 'block' : 'none';
-    });
-
-    const alphabetButtons = document.querySelectorAll('.alphabetFilter button');
-    if (!filteringByLetter) {
-        for (let btn of alphabetButtons) {
-            const letter = btn.textContent;
-            if (letter === 'All') continue;
-            btn.disabled = filteringByTagOrProvider ? !visibleLetters.has(letter) : false;
-        }
-    }
-
-    const allItems = document.querySelectorAll('.item');
-    const visibleItems = Array.from(allItems).filter(item => item.style.display !== 'none');
-
-    clearButton.disabled = selectedTag === 'all' && selectedProvider === 'all' && !selectedLetterFilter;
-
-    const emptyMessage = document.querySelector('.empty-message');
-    emptyMessage.style.display = visibleItems.length === 0 ? 'flex' : 'none';
-
-    const countDisplay = document.getElementById('database-count');
-    if (countDisplay) {
-        countDisplay.textContent = `${visibleItems.length} database${visibleItems.length === 1 ? '' : 's'} found`;
     }
 }
 
