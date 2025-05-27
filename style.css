@@ -185,4 +185,5 @@ select {
     margin-right: 6px;
     display: inline-block;
     font-family: inherit;
+    cursor: pointer;
 }

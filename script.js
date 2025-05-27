@@ -33,6 +33,8 @@ function processSheetData(csvData) {
     createLetterSections(sectionMap, container);
     const {sortedTagFilters, sortedProviderFilters} = sortFilters(tagFilters, providerFilters);
     createFilterControls(sortedTagFilters, sortedProviderFilters);
+
+    applyFilters();
 }
 
 function parseLine(line) {
@@ -58,6 +60,11 @@ function addToFilters(entry, tagFilters, providerFilters) {
         if (cleanTag) tagFilters.add(cleanTag);
     });
 }
+
+// Global filter state & functions accessible for item tag click handlers
+let selectedLetterFilter = null;
+let applyFilters;
+let updateAlphabetButtons;
 
 function createItem(entry) {
     const div = document.createElement('div');
@@ -101,7 +108,7 @@ function createItem(entry) {
             .map(tag => tag.trim())
             .filter(tag => tag !== '')
             .forEach(tag => {
-                const cleanTag = tag.startsWith('x') ? tag.slice(1) : tag;
+                const cleanTag = tag.replace(/^[xX]/, '');
 
                 const tagSpan = document.createElement('span');
                 tagSpan.textContent = cleanTag;
@@ -112,6 +119,18 @@ function createItem(entry) {
                 tagSpan.style.marginRight = '6px';
                 tagSpan.style.fontSize = '0.9em';
                 tagSpan.style.color = '#666';
+
+                // **HERE: When clicking a tag, update dropdown filter and apply filters**
+                tagSpan.addEventListener('click', () => {
+                    const tagDropdown = document.querySelector('.tagFilters select');
+                    if (tagDropdown) {
+                        tagDropdown.value = cleanTag;
+                        selectedLetterFilter = null;
+                        updateAlphabetButtons();
+                        applyFilters();
+                    }
+                });
+
                 tagsContainer.appendChild(tagSpan);
             });
 
@@ -128,13 +147,13 @@ function createLetterSections(sectionMap, container){
         const section = document.createElement('div');
         section.className = 'letter-section';
         section.dataset.letter = letter;
-    
+
         const heading = document.createElement('h3');
         heading.className = 'letter-heading';
         heading.textContent = letter;
 
         section.appendChild(heading);
-        sectionMap[letter].forEach(item => section.appendChild(item));    
+        sectionMap[letter].forEach(item => section.appendChild(item));
         container.appendChild(section);
     });
 }
@@ -158,7 +177,6 @@ function createFilterControls(tags, providers){
     const alphabetContainer = document.querySelector('.alphabetFilter');
     const alphabetButtons = {};
     const availableLetters = new Set();
-    let selectedLetterFilter = null;
 
     const clearButton = document.createElement('button');
     clearButton.textContent = 'Clear Filters';
@@ -181,8 +199,6 @@ function createFilterControls(tags, providers){
         applyFilters();
     });
 
-    applyFilters();
-
     alphabetContainer.appendChild(allButton);
 
     const alphabet = ['#'].concat(Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)));
@@ -199,7 +215,7 @@ function createFilterControls(tags, providers){
         alphabetContainer.appendChild(button);
     });
 
-    function applyFilters(){
+    applyFilters = function(){
         const selectedTag = tagDropdown.value;
         const selectedProvider = providerDropdown.value;
 
@@ -211,17 +227,16 @@ function createFilterControls(tags, providers){
             const nameText = item.querySelector('.database-name').textContent.trim();
             let firstLetter = nameText.charAt(0).toUpperCase();
             if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
-            
-            // Clean tags on item dataset before matching
+
             const tagsArray = item.dataset.tags.split(',').map(t => t.trim());
             const cleanedTagsArray = tagsArray.map(t => t.replace(/^\s*[xX]/, ''));
 
             const matchesTag = selectedTag === 'all' || cleanedTagsArray.includes(selectedTag);
             const matchesProvider = selectedProvider === 'all' || item.dataset.provider == selectedProvider;
             const matchesLetter = !selectedLetterFilter || firstLetter === selectedLetterFilter;
-    
+
             const visible = matchesTag && matchesProvider && matchesLetter;
-    
+
             item.style.display = visible ? 'flex' : 'none';
             if (visible) visibleLetters.add(firstLetter);
         });
@@ -240,7 +255,7 @@ function createFilterControls(tags, providers){
                 if (!btn) continue;
                 btn.disabled = filteringByTagOrProvider ? !visibleLetters.has(letter) : !availableLetters.has(letter);
             }
-    
+
             const numberBtn = alphabetButtons['#'];
             if (numberBtn) {
                 numberBtn.disabled = filteringByTagOrProvider ? !visibleLetters.has('#') : !availableLetters.has('#');
@@ -254,25 +269,25 @@ function createFilterControls(tags, providers){
         const hasProviderFilter = providerDropdown.value !== 'all';
         const hasLetterFilter = !!selectedLetterFilter;
         const anyFilterActive = hasTagFilter || hasProviderFilter || hasLetterFilter;
-        
+
         clearButton.disabled = !anyFilterActive;
-        
+
         emptyMessage.style.display = visibleItems.length === 0 ? 'flex' : 'none';
 
         const countDisplay = document.getElementById('database-count');
         if (countDisplay) {
             countDisplay.textContent = `${visibleItems.length} database${visibleItems.length === 1 ? '' : 's'} found`;
         }
-    }
+    };
 
-    function updateAlphabetButtons() {
+    updateAlphabetButtons = function(){
         document.querySelectorAll('.alphabetFilter button').forEach(btn => btn.classList.remove('active'));
         if (!selectedLetterFilter) {
             allButton.classList.add('active');
         } else {
             alphabetButtons[selectedLetterFilter]?.classList.add('active');
         }
-    }
+    };
 
     tagDropdown.addEventListener('change', () => {
         selectedLetterFilter = null;
@@ -286,31 +301,30 @@ function createFilterControls(tags, providers){
         applyFilters();
     });
 
-    clearButton.addEventListener('click', () => clearFilters());
-
-    function clearFilters() {
+    clearButton.addEventListener('click', () => {
         tagDropdown.value = 'all';
         providerDropdown.value = 'all';
         selectedLetterFilter = null;
         updateAlphabetButtons();
         applyFilters();
-    }
+    });
 }
 
-function createDropdown(defaultText, options, container) {
-    const dropdown = document.createElement('select');
+function createDropdown(defaultText, items, container) {
+    const select = document.createElement('select');
+
     const defaultOption = document.createElement('option');
     defaultOption.value = 'all';
     defaultOption.textContent = defaultText;
-    dropdown.appendChild(defaultOption);
+    select.appendChild(defaultOption);
 
-    options.forEach(opt => {
+    items.forEach(item => {
         const option = document.createElement('option');
-        option.value = opt;
-        option.textContent = opt;
-        dropdown.appendChild(option);
+        option.value = item;
+        option.textContent = item;
+        select.appendChild(option);
     });
 
-    container.appendChild(dropdown);
-    return dropdown;
+    container.appendChild(select);
+    return select;
 }
