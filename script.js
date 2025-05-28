@@ -10,6 +10,7 @@ function processSheetData(csvData) {
 
     const container = document.querySelector('.container');
     const tagFilters = new Set();
+    const tag1Filter = new Set();
     const providerFilters = new Set();
     const sectionMap = {};
 
@@ -21,7 +22,7 @@ function processSheetData(csvData) {
 
     for (let i = 1; i < lines.length; i++) {
         const entry = parseLine(lines[i]);
-        addToFilters(entry, tagFilters, providerFilters);
+        addToFilters(entry, tag1Filter, tagFilters, providerFilters);
         const item = createItem(entry);
 
         if (!sectionMap[entry.firstLetter]) {
@@ -31,8 +32,8 @@ function processSheetData(csvData) {
     }
 
     createLetterSections(sectionMap, container);
-    const { sortedTagFilters, sortedProviderFilters } = sortFilters(tagFilters, providerFilters);
-    createFilterControls(sortedTagFilters, sortedProviderFilters);
+    const { sortedTag1Filters, sortedTagFilters, sortedProviderFilters } = sortFilters(tag1Filter, tagFilters, providerFilters);
+    createFilterControls(sortedTag1Filters, sortedTagFilters, sortedProviderFilters);
 
     applyFilters();
 }
@@ -44,16 +45,19 @@ function parseLine(line) {
     const imageUrl = parts[2];
     const databaseUrl = parts[3];
     const databaseDescriptionText = parts[4];
-    const tags = parts.slice(5);
+    const tag1 = parts[5];
+    const tags = parts.slice(6);
 
     let firstLetter = name.trim().charAt(0).toUpperCase();
     if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
 
-    return { name, provider, imageUrl, databaseUrl, databaseDescriptionText, tags, firstLetter };
+    return { name, provider, imageUrl, databaseUrl, databaseDescriptionText, tag1, tags, firstLetter };
 }
 
-function addToFilters(entry, tagFilters, providerFilters) {
+function addToFilters(entry, tag1Filter, tagFilters, providerFilters) {
     if (entry.provider) providerFilters.add(entry.provider);
+    const cleanTag1 = entry.tag1.trim().replace(/^\s*[xX]/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ');
+    if (cleanTag1) tag1Filter.add(cleanTag1);
     entry.tags.forEach(tag => {
         // Clean tag: trim, remove leading 'x' or 'X', collapse spaces, ignore blanks
         const cleanTag = tag.trim().replace(/^\s*[xX]/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ');
@@ -71,6 +75,7 @@ function createItem(entry) {
     div.className = 'item';
     div.dataset.tags = entry.tags.join(',');
     div.dataset.provider = entry.provider;
+    div.dataset.tag1 = entry.tag1.trim().replace(/^\s*[xX]/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ');
 
     const logoFrame = document.createElement('div');
     logoFrame.className = 'logo-frame';
@@ -103,6 +108,31 @@ function createItem(entry) {
         const tagsContainer = document.createElement('div');
         tagsContainer.className = 'tags-container';
         tagsContainer.style.marginTop = '4px';
+
+        if (entry.tag1.trim() !== '') {
+            const cleanTag1 = entry.tag1.trim().replace(/^[xX]/, '');
+            const tag1Button = document.createElement('span');
+            tag1Button.textContent = cleanTag1;
+            tag1Button.className = 'tag-label';
+            tag1Button.style.backgroundColor = '#cce5ff';  // Light blue to distinguish it
+            tag1Button.style.borderRadius = '4px';
+            tag1Button.style.padding = '2px 6px';
+            tag1Button.style.marginRight = '6px';
+            tag1Button.style.fontSize = '0.9em';
+            tag1Button.style.color = '#004085';
+    
+            tag1Button.addEventListener('click', () => {
+                const tag1Dropdown = document.querySelector('.tag1Filters select');
+                if (tag1Dropdown) {
+                    tag1Dropdown.value = cleanTag1;
+                    selectedLetterFilter = null;
+                    updateAlphabetButtons();
+                    applyFilters();
+                }
+            });
+    
+            tagsContainer.appendChild(tag1Button);
+        }
 
         entry.tags
             .map(tag => tag.trim())
@@ -157,17 +187,20 @@ function createLetterSections(sectionMap, container) {
     });
 }
 
-function sortFilters(tagFilters, providerFilters) {
+function sortFilters(tag1Filters, tagFilters, providerFilters) {
     return {
+        sortedTag1Filters: Array.from(tag1Filters).sort(),
         sortedTagFilters: Array.from(tagFilters).sort(),
         sortedProviderFilters: Array.from(providerFilters).sort()
     };
 }
 
-function createFilterControls(tags, providers) {
+function createFilterControls(tag1s, tags, providers) {
+    const tag1FiltersContainer = document.querySelector('.tag1Filters')
     const tagFiltersContainer = document.querySelector('.tagFilters');
     const providerFiltersContainer = document.querySelector('.providerFilters');
 
+    const tag1Dropdown = createDropdown('All Primary Tags', tag1s, tag1FiltersContainer);
     const tagDropdown = createDropdown('All Tags', tags, tagFiltersContainer);
     const providerDropdown = createDropdown('All Providers', providers, providerFiltersContainer);
 
@@ -215,10 +248,11 @@ function createFilterControls(tags, providers) {
     });
 
     applyFilters = function () {
+        const selectedTag1 = tag1Dropdown.value;
         const selectedTag = tagDropdown.value;
         const selectedProvider = providerDropdown.value;
 
-        const filteringByTagOrProvider = selectedTag !== 'all' || selectedProvider !== 'all';
+        const filteringByTagOrProvider = selectedTag1 !== 'all' || selectedTag !== 'all' || selectedProvider !== 'all';
         const filteringByLetter = !!selectedLetterFilter;
         const visibleLetters = new Set();
 
@@ -231,10 +265,11 @@ function createFilterControls(tags, providers) {
             const cleanedTagsArray = tagsArray.map(t => t.replace(/^\s*[xX]/, ''));
 
             const matchesTag = selectedTag === 'all' || cleanedTagsArray.includes(selectedTag);
+            const matchesTag1 = selectedTag1 === 'all' || item.dataset.tag1 === selectedTag1;
             const matchesProvider = selectedProvider === 'all' || item.dataset.provider == selectedProvider;
             const matchesLetter = !selectedLetterFilter || firstLetter === selectedLetterFilter;
 
-            const visible = matchesTag && matchesProvider && matchesLetter;
+            const visible = matchesTag1 && matchesTag && matchesProvider && matchesLetter;
 
             item.style.display = visible ? 'flex' : 'none';
             if (visible) visibleLetters.add(firstLetter);
@@ -264,7 +299,7 @@ function createFilterControls(tags, providers) {
         const allItems = document.querySelectorAll('.item');
         const visibleItems = Array.from(allItems).filter(item => item.style.display !== 'none');
 
-        const hasTagFilter = tagDropdown.value !== 'all';
+        const hasTagFilter = tag1Dropdown.value !== 'all' || tagDropdown.value !== 'all';
         const hasProviderFilter = providerDropdown.value !== 'all';
         const hasLetterFilter = !!selectedLetterFilter;
         const anyFilterActive = hasTagFilter || hasProviderFilter || hasLetterFilter;
@@ -288,6 +323,12 @@ function createFilterControls(tags, providers) {
         }
     };
 
+    tag1Dropdown.addEventListener('change', () => {
+        selectedLetterFilter = null;
+        updateAlphabetButtons();
+        applyFilters();
+    });
+    
     tagDropdown.addEventListener('change', () => {
         selectedLetterFilter = null;
         updateAlphabetButtons();
@@ -301,6 +342,7 @@ function createFilterControls(tags, providers) {
     });
 
     clearButton.addEventListener('click', () => {
+        tag1Dropdown.value = 'all';
         tagDropdown.value = 'all';
         providerDropdown.value = 'all';
         selectedLetterFilter = null;
