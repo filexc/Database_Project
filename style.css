@@ -8,10 +8,16 @@
 
 .filterBar {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px; 
     align-items: center;
     margin-bottom: 1rem;
   }
+
+/* Hide the second and third dropdowns by default */
+.tagFilters, .tag3Filters {
+    display: none;
+}
 
 .item {
     display: flex;
