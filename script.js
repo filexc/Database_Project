@@ -7,11 +7,11 @@ fetch(sheetUrl)
 
 function processSheetData(csvData) {
     const lines = csvData.trim().split('\n');
-
     const container = document.querySelector('.container');
-    const tagFilters = new Set();
-    const providerFilters = new Set();
     const sectionMap = {};
+
+    const tagHierarchy = {};
+    const providerFilters = new Set();
 
     const emptyMessage = document.createElement('div');
     emptyMessage.className = 'empty-message';
@@ -21,19 +21,18 @@ function processSheetData(csvData) {
 
     for (let i = 1; i < lines.length; i++) {
         const entry = parseLine(lines[i]);
-        addToFilters(entry, tagFilters, providerFilters);
+        buildTagHierarchy(entry, tagHierarchy);
+        if (entry.provider) providerFilters.add(entry.provider);
+
         const item = createItem(entry);
 
-        if (!sectionMap[entry.firstLetter]) {
-            sectionMap[entry.firstLetter] = [];
-        }
+        if (!sectionMap[entry.firstLetter]) sectionMap[entry.firstLetter] = [];
         sectionMap[entry.firstLetter].push(item);
     }
 
     createLetterSections(sectionMap, container);
-    const { sortedTagFilters, sortedProviderFilters } = sortFilters(tagFilters, providerFilters);
-    createFilterControls(sortedTagFilters, sortedProviderFilters);
-
+    const sortedProviderFilters = Array.from(providerFilters).sort();
+    createFilterControls(tagHierarchy, sortedProviderFilters);
     applyFilters();
 }
 
@@ -44,33 +43,32 @@ function parseLine(line) {
     const imageUrl = parts[2];
     const databaseUrl = parts[3];
     const databaseDescriptionText = parts[4];
-    const tags = parts.slice(5);
+    const tags = parts.slice(5).map(tag => tag.trim()).filter(Boolean);
+    const [tag1, tag2, tag3] = tags;
 
     let firstLetter = name.trim().charAt(0).toUpperCase();
     if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
 
-    return { name, provider, imageUrl, databaseUrl, databaseDescriptionText, tags, firstLetter };
+    return { name, provider, imageUrl, databaseUrl, databaseDescriptionText, tag1, tag2, tag3, tags, firstLetter };
 }
 
-function addToFilters(entry, tagFilters, providerFilters) {
-    if (entry.provider) providerFilters.add(entry.provider);
-    entry.tags.forEach(tag => {
-        // Clean tag: trim, remove leading 'x' or 'X', collapse spaces, ignore blanks
-        const cleanTag = tag.trim().replace(/^\s*[xX]/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ');
-        if (cleanTag) tagFilters.add(cleanTag);
-    });
-}
+function buildTagHierarchy(entry, tagHierarchy) {
+    if (!entry.tag1) return;
 
-// Global filter state & functions accessible for item tag click handlers
-let selectedLetterFilter = null;
-let applyFilters;
-let updateAlphabetButtons;
+    if (!tagHierarchy[entry.tag1]) tagHierarchy[entry.tag1] = {};
+    if (entry.tag2) {
+        if (!tagHierarchy[entry.tag1][entry.tag2]) tagHierarchy[entry.tag1][entry.tag2] = new Set();
+        if (entry.tag3) tagHierarchy[entry.tag1][entry.tag2].add(entry.tag3);
+    }
+}
 
 function createItem(entry) {
     const div = document.createElement('div');
     div.className = 'item';
-    div.dataset.tags = entry.tags.join(',');
-    div.dataset.provider = entry.provider;
+    div.dataset.tag1 = entry.tag1 || '';
+    div.dataset.tag2 = entry.tag2 || '';
+    div.dataset.tag3 = entry.tag3 || '';
+    div.dataset.provider = entry.provider || '';
 
     const logoFrame = document.createElement('div');
     logoFrame.className = 'logo-frame';
@@ -81,61 +79,19 @@ function createItem(entry) {
 
     const nameAndDescription = document.createElement('div');
     nameAndDescription.className = 'text-block';
-    nameAndDescription.style.whiteSpace = 'normal';
 
-    const databaseLink = document.createElement('a');
-    databaseLink.href = entry.databaseUrl;
-    let p = entry.provider != '' ? ' (' + entry.provider + ')' : '';
-    databaseLink.textContent = entry.name + p;
-    databaseLink.target = '_blank';
-    databaseLink.className = 'database-name';
+    const link = document.createElement('a');
+    link.href = entry.databaseUrl;
+    link.textContent = entry.name + (entry.provider ? ` (${entry.provider})` : '');
+    link.target = '_blank';
+    link.className = 'database-name';
 
-    const databaseDescription = document.createElement('span');
-    databaseDescription.textContent = ' - ' + entry.databaseDescriptionText;
-    databaseDescription.style.fontSize = '0.9em';
-    databaseDescription.className = 'description';
+    const desc = document.createElement('span');
+    desc.textContent = ' - ' + entry.databaseDescriptionText;
+    desc.className = 'description';
 
-    nameAndDescription.appendChild(databaseLink);
-    nameAndDescription.appendChild(databaseDescription);
-
-    // Create a container for tags on the line below
-    if (entry.tags.some(tag => tag.trim() !== '')) {
-        const tagsContainer = document.createElement('div');
-        tagsContainer.className = 'tags-container';
-        tagsContainer.style.marginTop = '4px';
-
-        entry.tags
-            .map(tag => tag.trim())
-            .filter(tag => tag !== '')
-            .forEach(tag => {
-                const cleanTag = tag.replace(/^[xX]/, '');
-
-                const tagButton = document.createElement('span');
-                tagButton.textContent = cleanTag;
-                tagButton.className = 'tag-label';
-                tagButton.style.backgroundColor = '#ddd';
-                tagButton.style.borderRadius = '4px';
-                tagButton.style.padding = '2px 6px';
-                tagButton.style.marginRight = '6px';
-                tagButton.style.fontSize = '0.9em';
-                tagButton.style.color = '#666';
-
-                tagButton.addEventListener('click', () => {
-                    const tagDropdown = document.querySelector('.tagFilters select');
-                    if (tagDropdown) {
-                        tagDropdown.value = cleanTag;
-                        selectedLetterFilter = null;
-                        updateAlphabetButtons();
-                        applyFilters();
-                    }
-                });
-
-                tagsContainer.appendChild(tagButton);
-            });
-
-        nameAndDescription.appendChild(tagsContainer);
-    }
-
+    nameAndDescription.appendChild(link);
+    nameAndDescription.appendChild(desc);
     div.appendChild(nameAndDescription);
 
     return div;
@@ -157,31 +113,32 @@ function createLetterSections(sectionMap, container) {
     });
 }
 
-function sortFilters(tagFilters, providerFilters) {
-    return {
-        sortedTagFilters: Array.from(tagFilters).sort(),
-        sortedProviderFilters: Array.from(providerFilters).sort()
-    };
-}
+let selectedLetterFilter = null;
+let applyFilters;
+let updateAlphabetButtons;
 
-function createFilterControls(tags, providers) {
+function createFilterControls(tagHierarchy, providers) {
     const tagFiltersContainer = document.querySelector('.tagFilters');
     const providerFiltersContainer = document.querySelector('.providerFilters');
 
-    const tagDropdown = createDropdown('All Tags', tags, tagFiltersContainer);
-    const providerDropdown = createDropdown('All Providers', providers, providerFiltersContainer);
+    const tag1Select = createDropdown('All Tag1', Object.keys(tagHierarchy), tagFiltersContainer);
+    const tag2Select = createDropdown('All Tag2', [], tagFiltersContainer);
+    const tag3Select = createDropdown('All Tag3', [], tagFiltersContainer);
 
-    const emptyMessage = document.querySelector('.empty-message');
+    tag2Select.style.display = 'none';
+    tag3Select.style.display = 'none';
 
-    const alphabetContainer = document.querySelector('.alphabetFilter');
-    const alphabetButtons = {};
-    const availableLetters = new Set();
+    const providerSelect = createDropdown('All Providers', providers, providerFiltersContainer);
 
     const clearButton = document.createElement('button');
     clearButton.textContent = 'Clear Filters';
     clearButton.className = 'clear-button';
     clearButton.disabled = true;
     document.querySelector('.filterBar').appendChild(clearButton);
+
+    const alphabetContainer = document.querySelector('.alphabetFilter');
+    const alphabetButtons = {};
+    const availableLetters = new Set();
 
     document.querySelectorAll('.item').forEach(item => {
         let firstLetter = item.querySelector('.database-name').textContent.trim().charAt(0).toUpperCase();
@@ -199,7 +156,6 @@ function createFilterControls(tags, providers) {
     });
 
     alphabetContainer.appendChild(allButton);
-
     const alphabet = ['#'].concat(Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)));
     alphabet.forEach(letter => {
         const button = document.createElement('button');
@@ -214,116 +170,143 @@ function createFilterControls(tags, providers) {
         alphabetContainer.appendChild(button);
     });
 
-    applyFilters = function () {
-        const selectedTag = tagDropdown.value;
-        const selectedProvider = providerDropdown.value;
+    function updateTagDropdowns() {
+        const tag1Val = tag1Select.value;
+        tag2Select.innerHTML = '';
+        tag3Select.innerHTML = '';
 
-        const filteringByTagOrProvider = selectedTag !== 'all' || selectedProvider !== 'all';
+        tag2Select.style.display = 'none';
+        tag3Select.style.display = 'none';
+
+        if (tag1Val !== 'all' && tagHierarchy[tag1Val]) {
+            const tag2Options = Object.keys(tagHierarchy[tag1Val]);
+            if (tag2Options.length) {
+                addDropdownOptions(tag2Select, 'All Tag2', tag2Options);
+                tag2Select.style.display = 'inline-block';
+            }
+        }
+    }
+
+    tag1Select.addEventListener('change', () => {
+        tag2Select.value = 'all';
+        tag3Select.value = 'all';
+        updateTagDropdowns();
+        applyFilters();
+    });
+
+    tag2Select.addEventListener('change', () => {
+        const tag1Val = tag1Select.value;
+        const tag2Val = tag2Select.value;
+
+        tag3Select.innerHTML = '';
+        tag3Select.style.display = 'none';
+
+        if (tag1Val !== 'all' && tag2Val !== 'all' && tagHierarchy[tag1Val]?.[tag2Val]) {
+            const tag3Options = Array.from(tagHierarchy[tag1Val][tag2Val]);
+            if (tag3Options.length) {
+                addDropdownOptions(tag3Select, 'All Tag3', tag3Options);
+                tag3Select.style.display = 'inline-block';
+            }
+        }
+
+        applyFilters();
+    });
+
+    tag3Select.addEventListener('change', applyFilters);
+    providerSelect.addEventListener('change', applyFilters);
+    clearButton.addEventListener('click', () => {
+        tag1Select.value = 'all';
+        tag2Select.value = 'all';
+        tag3Select.value = 'all';
+        tag2Select.style.display = 'none';
+        tag3Select.style.display = 'none';
+        providerSelect.value = 'all';
+        selectedLetterFilter = null;
+        updateAlphabetButtons();
+        applyFilters();
+    });
+
+    applyFilters = function () {
+        const tag1 = tag1Select.value;
+        const tag2 = tag2Select.value;
+        const tag3 = tag3Select.value;
+        const provider = providerSelect.value;
+
         const filteringByLetter = !!selectedLetterFilter;
+        const filteringByTagOrProvider = tag1 !== 'all' || tag2 !== 'all' || tag3 !== 'all' || provider !== 'all';
         const visibleLetters = new Set();
 
         document.querySelectorAll('.item').forEach(item => {
-            const nameText = item.querySelector('.database-name').textContent.trim();
-            let firstLetter = nameText.charAt(0).toUpperCase();
+            const itemTag1 = item.dataset.tag1;
+            const itemTag2 = item.dataset.tag2;
+            const itemTag3 = item.dataset.tag3;
+            const itemProvider = item.dataset.provider;
+
+            let firstLetter = item.querySelector('.database-name').textContent.charAt(0).toUpperCase();
             if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
 
-            const tagsArray = item.dataset.tags.split(',').map(t => t.trim());
-            const cleanedTagsArray = tagsArray.map(t => t.replace(/^\s*[xX]/, ''));
+            const match =
+                (tag1 === 'all' || tag1 === itemTag1) &&
+                (tag2 === 'all' || tag2 === itemTag2) &&
+                (tag3 === 'all' || tag3 === itemTag3) &&
+                (provider === 'all' || provider === itemProvider) &&
+                (!selectedLetterFilter || firstLetter === selectedLetterFilter);
 
-            const matchesTag = selectedTag === 'all' || cleanedTagsArray.includes(selectedTag);
-            const matchesProvider = selectedProvider === 'all' || item.dataset.provider == selectedProvider;
-            const matchesLetter = !selectedLetterFilter || firstLetter === selectedLetterFilter;
-
-            const visible = matchesTag && matchesProvider && matchesLetter;
-
-            item.style.display = visible ? 'flex' : 'none';
-            if (visible) visibleLetters.add(firstLetter);
+            item.style.display = match ? 'flex' : 'none';
+            if (match) visibleLetters.add(firstLetter);
         });
 
         document.querySelectorAll('.letter-section').forEach(section => {
-            const hasVisible = Array.from(section.querySelectorAll('.item')).some(
+            const anyVisible = Array.from(section.querySelectorAll('.item')).some(
                 item => item.style.display !== 'none'
             );
-            section.style.display = hasVisible ? 'block' : 'none';
+            section.style.display = anyVisible ? 'block' : 'none';
         });
 
         if (!filteringByLetter) {
             for (let i = 65; i <= 90; i++) {
                 const letter = String.fromCharCode(i);
                 const btn = alphabetButtons[letter];
-                if (!btn) continue;
-                btn.disabled = filteringByTagOrProvider ? !visibleLetters.has(letter) : !availableLetters.has(letter);
+                if (btn) btn.disabled = filteringByTagOrProvider ? !visibleLetters.has(letter) : !availableLetters.has(letter);
             }
-
             const numberBtn = alphabetButtons['#'];
-            if (numberBtn) {
-                numberBtn.disabled = filteringByTagOrProvider ? !visibleLetters.has('#') : !availableLetters.has('#');
-            }
+            if (numberBtn) numberBtn.disabled = filteringByTagOrProvider ? !visibleLetters.has('#') : !availableLetters.has('#');
         }
 
-        const allItems = document.querySelectorAll('.item');
-        const visibleItems = Array.from(allItems).filter(item => item.style.display !== 'none');
-
-        const hasTagFilter = tagDropdown.value !== 'all';
-        const hasProviderFilter = providerDropdown.value !== 'all';
-        const hasLetterFilter = !!selectedLetterFilter;
-        const anyFilterActive = hasTagFilter || hasProviderFilter || hasLetterFilter;
-
-        clearButton.disabled = !anyFilterActive;
-
-        emptyMessage.style.display = visibleItems.length === 0 ? 'flex' : 'none';
+        const visibleItems = Array.from(document.querySelectorAll('.item')).filter(item => item.style.display !== 'none');
+        const emptyMessage = document.querySelector('.empty-message');
+        emptyMessage.style.display = visibleItems.length ? 'none' : 'flex';
 
         const countDisplay = document.getElementById('database-count');
-        if (countDisplay) {
-            countDisplay.textContent = `${visibleItems.length} database${visibleItems.length === 1 ? '' : 's'} found`;
-        }
+        countDisplay.textContent = `${visibleItems.length} database${visibleItems.length === 1 ? '' : 's'} found`;
+
+        clearButton.disabled = !filteringByTagOrProvider && !selectedLetterFilter;
     };
 
     updateAlphabetButtons = function () {
         document.querySelectorAll('.alphabetFilter button').forEach(btn => btn.classList.remove('active'));
-        if (!selectedLetterFilter) {
-            allButton.classList.add('active');
-        } else {
-            alphabetButtons[selectedLetterFilter]?.classList.add('active');
-        }
+        if (!selectedLetterFilter) allButton.classList.add('active');
+        else alphabetButtons[selectedLetterFilter]?.classList.add('active');
     };
-
-    tagDropdown.addEventListener('change', () => {
-        selectedLetterFilter = null;
-        updateAlphabetButtons();
-        applyFilters();
-    });
-
-    providerDropdown.addEventListener('change', () => {
-        selectedLetterFilter = null;
-        updateAlphabetButtons();
-        applyFilters();
-    });
-
-    clearButton.addEventListener('click', () => {
-        tagDropdown.value = 'all';
-        providerDropdown.value = 'all';
-        selectedLetterFilter = null;
-        updateAlphabetButtons();
-        applyFilters();
-    });
 }
 
-function createDropdown(defaultText, items, container) {
+function createDropdown(label, items, container) {
     const select = document.createElement('select');
-
-    const defaultOption = document.createElement('option');
-    defaultOption.value = 'all';
-    defaultOption.textContent = defaultText;
-    select.appendChild(defaultOption);
-
-    items.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item;
-        option.textContent = item;
-        select.appendChild(option);
-    });
-
+    addDropdownOptions(select, label, items);
     container.appendChild(select);
     return select;
+}
+
+function addDropdownOptions(select, label, items) {
+    select.innerHTML = '';
+    const defaultOption = document.createElement('option');
+    defaultOption.value = 'all';
+    defaultOption.textContent = label;
+    select.appendChild(defaultOption);
+    items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item;
+        opt.textContent = item;
+        select.appendChild(opt);
+    });
 }
