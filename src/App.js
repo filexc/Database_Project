@@ -136,9 +136,9 @@ function App() {
         filteredData={filteredData}
         onTagClick={(tag, isPrimary, tag1) => {
           if (isPrimary) {
-            updateFilters({ tag1, tag2: 'all', tag3: 'all', letter: null });
+            updateFilters({ tag1, tag3: 'all', letter: null });
           } else {
-            updateFilters({ tag1: tag1 || 'all', tag2: tag, tag3: 'all', letter: null });
+            updateFilters({ tag2: tag, tag3: 'all', letter: null });
           }
         }}
       />

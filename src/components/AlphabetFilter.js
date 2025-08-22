@@ -20,9 +20,7 @@ const AlphabetFilter = ({ allItemsData, filteredData, selectedLetter, onLetterSe
   const alphabet = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))];
 
   const isButtonDisabled = (letter) => {
-    if (isFilteringByTagsOrProvider) {
-      return !visibleLetters.has(letter);
-    }
+    // Only disable letters that don't have any databases at all
     return !availableLetters.has(letter);
   };
 
