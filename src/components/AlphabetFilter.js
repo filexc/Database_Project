@@ -6,16 +6,7 @@ const AlphabetFilter = ({ allItemsData, filteredData, selectedLetter, onLetterSe
     return availableLetters;
   };
 
-  const getVisibleLetters = () => {
-    const visibleLetters = new Set(filteredData.map(item => item.firstLetter));
-    return visibleLetters;
-  };
-
   const availableLetters = getAvailableLetters();
-  const visibleLetters = getVisibleLetters();
-  
-  // Check if we're filtering by tags or provider
-  const isFilteringByTagsOrProvider = filteredData.length !== allItemsData.length;
 
   const alphabet = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))];
 
