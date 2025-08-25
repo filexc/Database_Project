@@ -8,6 +8,11 @@ import DatabaseCount from './components/DatabaseCount';
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSKC0N3BXrvxSnYhKoLtg1AG7QKevRWw6wtglOxOqd5c2yA-4sYm1fa51Q5thYUbNmvuUhgwogaZacG/pub?output=tsv';
 
+// CORS proxy for production deployment
+const getSheetUrl = () => {
+  return SHEET_URL;
+};
+
 function App() {
   const [allItemsData, setAllItemsData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -31,9 +36,28 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch(SHEET_URL);
+      const url = getSheetUrl();
+      console.log('Fetching data from:', url);
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Accept': 'text/plain,text/html',
+          'Content-Type': 'text/plain',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const csvData = await response.text();
+      console.log('Data received, length:', csvData.length);
+      console.log('First 200 characters:', csvData.substring(0, 200));
+      
       const processedData = processSheetData(csvData);
+      console.log('Processed data count:', processedData.length);
+      
       setAllItemsData(processedData);
       
       // Extract providers
@@ -43,6 +67,7 @@ function App() {
       setLoading(false);
     } catch (error) {
       console.error('Error loading the sheet:', error);
+      console.error('Error details:', error.message);
       setLoading(false);
     }
   };
