@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import Header from './components/Header';
 import FilterBar from './components/FilterBar';
 import AlphabetFilter from './components/AlphabetFilter';
 import DatabaseList from './components/DatabaseList';
@@ -113,7 +114,7 @@ function App() {
 
   return (
     <div className="App">
-      <h2>Databases</h2>
+      <Header logo="/Database_Project/images/CastillejaLogo.png" />
       
       <FilterBar
         allItemsData={allItemsData}
