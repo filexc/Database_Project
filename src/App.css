@@ -1,3 +1,8 @@
+/* Global Font */
+* {
+  font-family: 'Overpass', sans-serif;
+}
+
 /* Header Styles */
 .header {
   margin-bottom: 2rem;

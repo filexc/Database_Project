@@ -13,7 +13,7 @@ const Header = ({ logo }) => {
             />
           </div>
         )}
-        <h2 className="header-title">Databases</h2>
+        <h2 className="header-title">Castilleja Library Databases</h2>
       </div>
     </header>
   );
