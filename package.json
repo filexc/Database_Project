@@ -10,7 +10,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "shutdown": "pkill -f 'react-scripts' && pkill -f 'node.*start' && lsof -ti:3000 | xargs kill -9 2>/dev/null || true"
   },
   "dependencies": {
     "react": "^18.2.0",
