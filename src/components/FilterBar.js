@@ -16,13 +16,24 @@ const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFi
 
   // Generate secondary tag options (from remaining tags array)
   useEffect(() => {
-    const allSecondaryTags = [...new Set(allItemsData.flatMap(item => item.tags))].sort();
-    setTag2Options(allSecondaryTags);
-  }, [allItemsData]);
+    if (filters.tag1 === 'all') {
+      // If no primary tag is selected, show all secondary tags
+      const allSecondaryTags = [...new Set(allItemsData.flatMap(item => item.tags))].sort();
+      setTag2Options(allSecondaryTags);
+    } else {
+      // If primary tag is selected, only show secondary tags that exist with that primary tag
+      const filteredItems = allItemsData.filter(item => 
+        item.tag1 === filters.tag1 || item.tag2 === filters.tag1
+      );
+      const availableSecondaryTags = [...new Set(filteredItems.flatMap(item => item.tags))].sort();
+      setTag2Options(availableSecondaryTags);
+    }
+  }, [allItemsData, filters.tag1]);
 
   // Update tag3 options when tag1 or tag2 changes
   useEffect(() => {
-    if (filters.tag1 === 'all' && filters.tag2 === 'all') {
+    // Only show tag3 dropdown when a secondary tag is selected
+    if (filters.tag2 === 'all') {
       setTag3Options([]);
       setShowTag3(false);
     } else {
@@ -33,10 +44,10 @@ const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFi
         return matchesPrimaryTag && matchesSecondaryTag;
       });
       
-      // Get remaining tags from the tags array
+      // Get remaining tags from the tags array, excluding the selected secondary tag
       const tertiaryTags = [...new Set(
         filteredItems.flatMap(item => item.tags)
-      )].sort();
+      )].filter(tag => tag !== filters.tag2).sort();
       setTag3Options(tertiaryTags);
       setShowTag3(tertiaryTags.length > 0);
     }
