@@ -6,13 +6,15 @@ const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFi
   const [tag3Options, setTag3Options] = useState([]);
   const [showTag3, setShowTag3] = useState(false);
 
-  // Generate tag1 options
+  // Generate combined primary tag options (from both tag1 and tag2)
   useEffect(() => {
-    const primaryTags = [...new Set(allItemsData.map(item => item.tag1).filter(Boolean))].sort();
-    setTag1Options(primaryTags);
+    const tag1Tags = allItemsData.map(item => item.tag1).filter(Boolean);
+    const tag2Tags = allItemsData.map(item => item.tag2).filter(Boolean);
+    const allPrimaryTags = [...new Set([...tag1Tags, ...tag2Tags])].sort();
+    setTag1Options(allPrimaryTags);
   }, [allItemsData]);
 
-  // Generate all secondary tags (independent of primary tag selection)
+  // Generate secondary tag options (from remaining tags array)
   useEffect(() => {
     const allSecondaryTags = [...new Set(allItemsData.flatMap(item => item.tags))].sort();
     setTag2Options(allSecondaryTags);
@@ -20,20 +22,20 @@ const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFi
 
   // Update tag3 options when tag1 or tag2 changes
   useEffect(() => {
-    if (filters.tag2 === 'all') {
+    if (filters.tag1 === 'all' && filters.tag2 === 'all') {
       setTag3Options([]);
       setShowTag3(false);
     } else {
-      // Filter items based on selected tag2
-      let filteredItems = allItemsData.filter(item => item.tags.includes(filters.tag2));
+      // Filter items based on selected primary tag (matches either tag1 or tag2)
+      let filteredItems = allItemsData.filter(item => {
+        const matchesPrimaryTag = filters.tag1 === 'all' || item.tag1 === filters.tag1 || item.tag2 === filters.tag1;
+        const matchesSecondaryTag = filters.tag2 === 'all' || item.tags.includes(filters.tag2);
+        return matchesPrimaryTag && matchesSecondaryTag;
+      });
       
-      // If tag1 is also selected, further filter by tag1
-      if (filters.tag1 !== 'all') {
-        filteredItems = filteredItems.filter(item => item.tag1 === filters.tag1);
-      }
-      
+      // Get remaining tags from the tags array
       const tertiaryTags = [...new Set(
-        filteredItems.flatMap(item => item.tags).filter(tag => tag !== filters.tag2)
+        filteredItems.flatMap(item => item.tags)
       )].sort();
       setTag3Options(tertiaryTags);
       setShowTag3(tertiaryTags.length > 0);
@@ -86,7 +88,7 @@ const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFi
         </select>
       </div>
 
-      <div className="tagFilters">
+      <div className="tag2Filters">
         <select 
           value={filters.tag2} 
           onChange={(e) => handleTag2Change(e.target.value)}

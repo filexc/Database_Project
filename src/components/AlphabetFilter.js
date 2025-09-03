@@ -1,8 +1,18 @@
 import React from 'react';
 
-const AlphabetFilter = ({ allItemsData, filteredData, selectedLetter, onLetterSelect }) => {
+const AlphabetFilter = ({ allItemsData, filteredData, selectedLetter, onLetterSelect, filters }) => {
   const getAvailableLetters = () => {
-    const availableLetters = new Set(allItemsData.map(item => item.firstLetter));
+    // Apply all filters except the letter filter to see what letters would be available
+    let availableData = allItemsData.filter(item => {
+      const matchesPrimaryTag = filters.tag1 === 'all' || item.tag1 === filters.tag1 || item.tag2 === filters.tag1;
+      const matchesSecondaryTag = filters.tag2 === 'all' || item.tags.includes(filters.tag2);
+      const matchesTag3 = filters.tag3 === 'all' || item.tags.includes(filters.tag3);
+      const matchesProvider = filters.provider === 'all' || item.provider === filters.provider;
+      
+      return matchesPrimaryTag && matchesSecondaryTag && matchesTag3 && matchesProvider;
+    });
+    
+    const availableLetters = new Set(availableData.map(item => item.firstLetter));
     return availableLetters;
   };
 
@@ -11,7 +21,11 @@ const AlphabetFilter = ({ allItemsData, filteredData, selectedLetter, onLetterSe
   const alphabet = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))];
 
   const isButtonDisabled = (letter) => {
-    // Only disable letters that don't have any databases at all
+    // If a letter is already selected, don't disable any letters
+    if (selectedLetter) {
+      return false;
+    }
+    // Otherwise, disable letters that don't have any databases with current filters
     return !availableLetters.has(letter);
   };
 

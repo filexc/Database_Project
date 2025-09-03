@@ -1,11 +1,11 @@
 import React from 'react';
 
 const DatabaseItem = ({ item, onTagClick }) => {
-  const handleTagClick = (tag, isPrimary) => {
-    onTagClick(tag, isPrimary, item.tag1);
+  const handleTagClick = (tag, isPrimary, tag1, tag2) => {
+    onTagClick(tag, isPrimary, tag1, tag2);
   };
 
-  const allDisplayTags = [item.tag1, ...item.tags].filter(Boolean);
+  const allDisplayTags = [item.tag1, item.tag2, ...item.tags].filter(Boolean);
 
   return (
     <div className="item">
@@ -26,13 +26,23 @@ const DatabaseItem = ({ item, onTagClick }) => {
         
         {allDisplayTags.length > 0 && (
           <div className="tags-container">
-            {/* Primary Tag */}
+            {/* First Primary Tag */}
             {item.tag1 && (
               <span 
                 className="tag-label primary"
-                onClick={() => handleTagClick(item.tag1, true)}
+                onClick={() => handleTagClick(item.tag1, 1, item.tag1, item.tag2)}
               >
                 {item.tag1}
+              </span>
+            )}
+            
+            {/* Second Primary Tag */}
+            {item.tag2 && (
+              <span 
+                className="tag-label primary"
+                onClick={() => handleTagClick(item.tag2, 2, item.tag1, item.tag2)}
+              >
+                {item.tag2}
               </span>
             )}
             
@@ -41,7 +51,7 @@ const DatabaseItem = ({ item, onTagClick }) => {
               <span 
                 key={index}
                 className="tag-label"
-                onClick={() => handleTagClick(tag, false)}
+                onClick={() => handleTagClick(tag, false, item.tag1, item.tag2)}
               >
                 {tag}
               </span>

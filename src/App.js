@@ -96,24 +96,31 @@ function App() {
     const imageUrl = parts[2] || '';
     const databaseUrl = parts[3] || '';
     const databaseDescriptionText = parts[4] || '';
+    
+    // Column 5 becomes tag1 (first primary tag)
     const tag1 = cleanTag(parts[5]);
-    const tags = parts.slice(6).map(cleanTag).filter(Boolean);
+    
+    // Column 6 becomes tag2 (second primary tag)
+    const tag2 = cleanTag(parts[6]);
+    
+    // Remaining columns (starting from column 7) become the other tags
+    const tags = parts.slice(7).map(cleanTag).filter(Boolean);
 
     let firstLetter = name.trim().charAt(0).toUpperCase();
     if (!firstLetter.match(/[A-Z]/)) firstLetter = '#';
 
-    return { name, provider, imageUrl, databaseUrl, databaseDescriptionText, tag1, tags, firstLetter };
+    return { name, provider, imageUrl, databaseUrl, databaseDescriptionText, tag1, tag2, tags, firstLetter };
   };
 
   const applyFilters = () => {
     let filtered = allItemsData.filter(item => {
-      const matchesTag1 = filters.tag1 === 'all' || item.tag1 === filters.tag1;
-      const matchesTag2 = filters.tag2 === 'all' || item.tags.includes(filters.tag2);
+      const matchesPrimaryTag = filters.tag1 === 'all' || item.tag1 === filters.tag1 || item.tag2 === filters.tag1;
+      const matchesSecondaryTag = filters.tag2 === 'all' || item.tags.includes(filters.tag2);
       const matchesTag3 = filters.tag3 === 'all' || item.tags.includes(filters.tag3);
       const matchesProvider = filters.provider === 'all' || item.provider === filters.provider;
       const matchesLetter = !filters.letter || item.firstLetter === filters.letter;
 
-      return matchesTag1 && matchesTag2 && matchesTag3 && matchesProvider && matchesLetter;
+      return matchesPrimaryTag && matchesSecondaryTag && matchesTag3 && matchesProvider && matchesLetter;
     });
 
     setFilteredData(filtered);
@@ -154,16 +161,22 @@ function App() {
         filteredData={filteredData}
         selectedLetter={filters.letter}
         onLetterSelect={(letter) => updateFilters({ letter })}
+        filters={filters}
       />
       
       <DatabaseCount count={filteredData.length} />
       
       <DatabaseList
         filteredData={filteredData}
-        onTagClick={(tag, isPrimary, tag1) => {
-          if (isPrimary) {
-            updateFilters({ tag1, tag3: 'all', letter: null });
+        onTagClick={(tag, isPrimary, tag1, tag2) => {
+          if (isPrimary === 1) {
+            // First primary tag clicked - set primary filter
+            updateFilters({ tag1, tag2: 'all', tag3: 'all', letter: null });
+          } else if (isPrimary === 2) {
+            // Second primary tag clicked - set primary filter (since we combine them)
+            updateFilters({ tag1: tag, tag2: 'all', tag3: 'all', letter: null });
           } else {
+            // Secondary tag clicked - set secondary filter
             updateFilters({ tag2: tag, tag3: 'all', letter: null });
           }
         }}
