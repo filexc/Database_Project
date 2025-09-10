@@ -21,11 +21,7 @@ const AlphabetFilter = ({ allItemsData, filteredData, selectedLetter, onLetterSe
   const alphabet = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))];
 
   const isButtonDisabled = (letter) => {
-    // If a letter is already selected, don't disable any letters
-    if (selectedLetter) {
-      return false;
-    }
-    // Otherwise, disable letters that don't have any databases with current filters
+    // Always disable letters that don't have any databases with current filters
     return !availableLetters.has(letter);
   };
 
