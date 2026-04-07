@@ -14,47 +14,58 @@ const DatabaseItem = ({ item, onTagClick }) => {
       </div>
 
       <div className="text-block">
-        <a 
-          href={item.databaseUrl} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="database-name"
-        >
-          {item.name}{item.provider ? ` (${item.provider})` : ''}
-        </a>
-        <span className="description"> - {item.databaseDescriptionText}</span>
+        <div className="database-title-row">
+          <a
+            href={item.databaseUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="database-name"
+          >
+            {item.name}
+            {item.provider ? ` (${item.provider})` : ''}
+          </a>
+        </div>
+        {item.databaseDescriptionText ? (
+          <p className="description">{item.databaseDescriptionText}</p>
+        ) : null}
         
         {allDisplayTags.length > 0 && (
           <div className="tags-container">
             {/* First Primary Tag */}
             {item.tag1 && (
-              <span 
+              <button
+                type="button"
                 className="tag-label primary"
                 onClick={() => handleTagClick(item.tag1, 1, item.tag1, item.tag2)}
+                aria-label={`Filter by primary tag ${item.tag1}`}
               >
                 {item.tag1}
-              </span>
+              </button>
             )}
             
             {/* Second Primary Tag */}
             {item.tag2 && (
-              <span 
+              <button
+                type="button"
                 className="tag-label primary"
                 onClick={() => handleTagClick(item.tag2, 2, item.tag1, item.tag2)}
+                aria-label={`Filter by primary tag ${item.tag2}`}
               >
                 {item.tag2}
-              </span>
+              </button>
             )}
             
             {/* Other Tags */}
             {item.tags.map((tag, index) => (
-              <span 
+              <button
+                type="button"
                 key={index}
                 className="tag-label"
                 onClick={() => handleTagClick(tag, false, item.tag1, item.tag2)}
+                aria-label={`Filter by tag ${tag}`}
               >
                 {tag}
-              </span>
+              </button>
             ))}
           </div>
         )}

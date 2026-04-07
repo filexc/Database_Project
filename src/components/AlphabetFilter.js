@@ -1,49 +1,81 @@
 import React from 'react';
+import { matchesFilters } from '../utils/filters';
 
-const AlphabetFilter = ({ allItemsData, filteredData, selectedLetter, onLetterSelect, filters }) => {
+const ALPHABET_ORDER = [
+  '#',
+  ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
+];
+
+const sortSelectedLetters = (set) =>
+  ALPHABET_ORDER.filter((letter) => set.has(letter));
+
+const AlphabetFilter = ({
+  allItemsData,
+  selectedLetters = [],
+  multiLetter,
+  onLettersChange,
+  filters
+}) => {
   const getAvailableLetters = () => {
-    // Apply all filters except the letter filter to see what letters would be available
-    let availableData = allItemsData.filter(item => {
-      const matchesPrimaryTag = filters.tag1 === 'all' || item.tag1 === filters.tag1 || item.tag2 === filters.tag1;
-      const matchesSecondaryTag = filters.tag2 === 'all' || item.tags.includes(filters.tag2);
-      const matchesTag3 = filters.tag3 === 'all' || item.tags.includes(filters.tag3);
-      const matchesProvider = filters.provider === 'all' || item.provider === filters.provider;
-      
-      return matchesPrimaryTag && matchesSecondaryTag && matchesTag3 && matchesProvider;
-    });
-    
-    const availableLetters = new Set(availableData.map(item => item.firstLetter));
+    let availableData = allItemsData.filter((item) =>
+      matchesFilters(item, filters, { includeLetter: false })
+    );
+
+    const availableLetters = new Set(availableData.map((item) => item.firstLetter));
     return availableLetters;
   };
 
   const availableLetters = getAvailableLetters();
 
-  const alphabet = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))];
+  const alphabet = ALPHABET_ORDER;
 
-  const isButtonDisabled = (letter) => {
-    // Always disable letters that don't have any databases with current filters
-    return !availableLetters.has(letter);
-  };
+  const isButtonDisabled = (letter) => !availableLetters.has(letter);
 
-  const isButtonActive = (letter) => {
-    return selectedLetter === letter;
+  const isButtonActive = (letter) => selectedLetters.includes(letter);
+
+  const handleLetterClick = (letter) => {
+    if (letter === null) {
+      onLettersChange([]);
+      return;
+    }
+
+    if (multiLetter) {
+      const nextSet = new Set(selectedLetters);
+      if (nextSet.has(letter)) {
+        nextSet.delete(letter);
+      } else {
+        nextSet.add(letter);
+      }
+      onLettersChange(sortSelectedLetters(nextSet));
+      return;
+    }
+
+    if (selectedLetters.length === 1 && selectedLetters[0] === letter) {
+      onLettersChange([]);
+    } else {
+      onLettersChange([letter]);
+    }
   };
 
   return (
     <div className="alphabetFilter">
       <button
-        onClick={() => onLetterSelect(null)}
-        className={!selectedLetter ? 'active' : ''}
+        type="button"
+        onClick={() => handleLetterClick(null)}
+        className={selectedLetters.length === 0 ? 'active' : ''}
+        aria-pressed={selectedLetters.length === 0}
       >
         All
       </button>
-      
-      {alphabet.map(letter => (
+
+      {alphabet.map((letter) => (
         <button
+          type="button"
           key={letter}
-          onClick={() => onLetterSelect(letter)}
+          onClick={() => handleLetterClick(letter)}
           disabled={isButtonDisabled(letter)}
           className={isButtonActive(letter) ? 'active' : ''}
+          aria-pressed={isButtonActive(letter)}
         >
           {letter}
         </button>

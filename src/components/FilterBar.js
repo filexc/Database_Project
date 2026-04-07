@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { itemMatchesPrimarySelection } from '../utils/filters';
 
 const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFilters }) => {
   const [tag1Options, setTag1Options] = useState([]);
-  const [tag2Options, setTag2Options] = useState([]);
-  const [tag3Options, setTag3Options] = useState([]);
-  const [showTag3, setShowTag3] = useState(false);
+  const [secondaryOptions, setSecondaryOptions] = useState([]);
 
   // Generate combined primary tag options (from both tag1 and tag2)
   useEffect(() => {
@@ -16,81 +15,95 @@ const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFi
 
   // Generate secondary tag options (from remaining tags array)
   useEffect(() => {
-    if (filters.tag1 === 'all') {
-      // If no primary tag is selected, show all secondary tags
+    const hasPrimaryFilter = (filters.primaryTags || []).some((p) => p !== 'all');
+    const shouldShowAllSecondaryOptions =
+      filters.matchMode === 'OR_ANY' || !hasPrimaryFilter;
+
+    if (shouldShowAllSecondaryOptions) {
       const allSecondaryTags = [...new Set(allItemsData.flatMap(item => item.tags))].sort();
-      setTag2Options(allSecondaryTags);
+      setSecondaryOptions(allSecondaryTags);
     } else {
-      // If primary tag is selected, only show secondary tags that exist with that primary tag
-      const filteredItems = allItemsData.filter(item => 
-        item.tag1 === filters.tag1 || item.tag2 === filters.tag1
+      const filteredItems = allItemsData.filter((item) =>
+        itemMatchesPrimarySelection(item, filters.primaryTags)
       );
       const availableSecondaryTags = [...new Set(filteredItems.flatMap(item => item.tags))].sort();
-      setTag2Options(availableSecondaryTags);
+      setSecondaryOptions(availableSecondaryTags);
     }
-  }, [allItemsData, filters.tag1]);
+  }, [allItemsData, filters.primaryTags, filters.matchMode]);
 
-  // Update tag3 options when tag1 or tag2 changes
-  useEffect(() => {
-    // Only show tag3 dropdown when a secondary tag is selected
-    if (filters.tag2 === 'all') {
-      setTag3Options([]);
-      setShowTag3(false);
-    } else {
-      // Filter items based on selected primary tag (matches either tag1 or tag2)
-      let filteredItems = allItemsData.filter(item => {
-        const matchesPrimaryTag = filters.tag1 === 'all' || item.tag1 === filters.tag1 || item.tag2 === filters.tag1;
-        const matchesSecondaryTag = filters.tag2 === 'all' || item.tags.includes(filters.tag2);
-        return matchesPrimaryTag && matchesSecondaryTag;
-      });
-      
-      // Get remaining tags from the tags array, excluding the selected secondary tag
-      const tertiaryTags = [...new Set(
-        filteredItems.flatMap(item => item.tags)
-      )].filter(tag => tag !== filters.tag2).sort();
-      setTag3Options(tertiaryTags);
-      setShowTag3(tertiaryTags.length > 0);
-    }
-  }, [filters.tag1, filters.tag2, allItemsData]);
+  const primaryTags = filters.primaryTags || ['all', 'all'];
 
-  const handleTag1Change = (value) => {
-    onFilterChange({ 
-      tag1: value, 
-      tag3: 'all',
-      letter: null 
+  const handlePrimaryChange = (index, value) => {
+    const next = [...primaryTags];
+    next[index] = value;
+    onFilterChange({
+      primaryTags: next,
+      letters: []
     });
   };
 
-  const handleTag2Change = (value) => {
-    onFilterChange({ 
-      tag2: value, 
-      tag3: 'all',
-      letter: null 
+  const secondaryTags = filters.secondaryTags || ['all'];
+  const selectedSecondaryTags = secondaryTags.filter(tag => tag !== 'all');
+  const renderedSecondaryOptions = [...new Set([...secondaryOptions, ...selectedSecondaryTags])].sort();
+
+  const handleSecondaryChange = (index, value) => {
+    const next = [...secondaryTags];
+    next[index] = value;
+    onFilterChange({
+      secondaryTags: next,
+      letters: []
     });
   };
 
-  const handleTag3Change = (value) => {
-    onFilterChange({ 
-      tag3: value,
-      letter: null 
+  const addSecondaryDropdown = () => {
+    onFilterChange({
+      secondaryTags: [...secondaryTags, 'all']
+    });
+  };
+
+  const removeSecondaryDropdown = (index) => {
+    const next = secondaryTags.filter((_, i) => i !== index);
+    onFilterChange({
+      secondaryTags: next.length > 0 ? next : ['all'],
+      letters: []
     });
   };
 
   const handleProviderChange = (value) => {
-    onFilterChange({ 
+    onFilterChange({
       provider: value,
-      letter: null 
+      letters: []
     });
   };
 
-  const isAnyFilterActive = filters.tag1 !== 'all' || filters.tag2 !== 'all' || filters.provider !== 'all' || filters.letter !== null;
+  const isAnyFilterActive =
+    primaryTags.some((p) => p !== 'all') ||
+    secondaryTags.some(tag => tag !== 'all') ||
+    filters.provider !== 'all' ||
+    (filters.letters || []).length > 0 ||
+    filters.matchMode !== 'AND';
 
   return (
     <div className="filterBar">
       <div className="tag1Filters">
-        <select 
-          value={filters.tag1} 
-          onChange={(e) => handleTag1Change(e.target.value)}
+        <label htmlFor="primary-tag-0-select" className="filter-label">Primary tag 1</label>
+        <select
+          id="primary-tag-0-select"
+          value={primaryTags[0]}
+          onChange={(e) => handlePrimaryChange(0, e.target.value)}
+        >
+          <option value="all">All Primary Tags</option>
+          {tag1Options.map(tag => (
+            <option key={tag} value={tag}>{tag}</option>
+          ))}
+        </select>
+      </div>
+      <div className="tag1Filters">
+        <label htmlFor="primary-tag-1-select" className="filter-label">Primary tag 2</label>
+        <select
+          id="primary-tag-1-select"
+          value={primaryTags[1] || 'all'}
+          onChange={(e) => handlePrimaryChange(1, e.target.value)}
         >
           <option value="all">All Primary Tags</option>
           {tag1Options.map(tag => (
@@ -99,34 +112,52 @@ const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFi
         </select>
       </div>
 
-      <div className="tag2Filters">
-        <select 
-          value={filters.tag2} 
-          onChange={(e) => handleTag2Change(e.target.value)}
+      {secondaryTags.map((tagValue, index) => (
+        <div key={`secondary-${index}`} className={index === 0 ? 'tag2Filters' : 'tag3Filters'}>
+          <label htmlFor={`secondary-tag-${index}-select`} className="filter-label">
+            {`Secondary tag ${index + 1}`}
+          </label>
+          <div className="secondary-row">
+            <select
+              id={`secondary-tag-${index}-select`}
+              value={tagValue}
+              onChange={(e) => handleSecondaryChange(index, e.target.value)}
+            >
+              <option value="all">All Secondary Tags</option>
+              {renderedSecondaryOptions.map(tag => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+            {secondaryTags.length > 1 && (
+              <button
+                type="button"
+                className="secondary-remove-button"
+                onClick={() => removeSecondaryDropdown(index)}
+                aria-label={`Remove secondary tag ${index + 1}`}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <div className="secondary-add-wrap">
+        <label className="filter-label" htmlFor="add-secondary-button">Secondary tags</label>
+        <button
+          id="add-secondary-button"
+          type="button"
+          className="secondary-add-button"
+          onClick={addSecondaryDropdown}
         >
-          <option value="all">All Secondary Tags</option>
-          {tag2Options.map(tag => (
-            <option key={tag} value={tag}>{tag}</option>
-          ))}
-        </select>
+          + Add Secondary Tag
+        </button>
       </div>
 
-      {showTag3 && (
-        <div className="tag3Filters" style={{ display: 'block' }}>
-          <select 
-            value={filters.tag3} 
-            onChange={(e) => handleTag3Change(e.target.value)}
-          >
-            <option value="all">All Tags</option>
-            {tag3Options.map(tag => (
-              <option key={tag} value={tag}>{tag}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
       <div className="providerFilters">
+        <label htmlFor="provider-select" className="filter-label">Provider</label>
         <select 
+          id="provider-select"
           value={filters.provider} 
           onChange={(e) => handleProviderChange(e.target.value)}
         >
@@ -137,7 +168,20 @@ const FilterBar = ({ allItemsData, filters, providers, onFilterChange, onClearFi
         </select>
       </div>
 
-      <button 
+      <div className="logicFilters">
+        <label htmlFor="logic-select" className="filter-label">Filter logic</label>
+        <select
+          id="logic-select"
+          value={filters.matchMode}
+          onChange={(e) => onFilterChange({ matchMode: e.target.value })}
+        >
+          <option value="AND">AND (all selected)</option>
+          <option value="OR_ANY">OR (any selected)</option>
+          <option value="PRIMARY_AND_SECONDARY_OR">Primary AND (any Secondary tag)</option>
+        </select>
+      </div>
+
+      <button
         className="clear-button"
         disabled={!isAnyFilterActive}
         onClick={onClearFilters}
